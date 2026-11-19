@@ -1,0 +1,507 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "XMUX shared contracts (draft)",
+    "version": "0.1.0-draft.1",
+    "description": "P0.2 schema catalog only. Pending team agreement. Empty paths are intentional: service operations, authentication bindings and response envelopes are defined in later contract tasks. This document describes no deployed service."
+  },
+  "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
+  "paths": {},
+  "components": {
+    "schemas": {
+      "ApprovalRequest": {
+        "title": "ApprovalRequest",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1"
+          },
+          "approval_id": {
+            "$ref": "#/components/schemas/Common/$defs/Uuid"
+          },
+          "task_id": {
+            "$ref": "#/components/schemas/Common/$defs/Uuid"
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "approve",
+              "deny"
+            ]
+          },
+          "action_fingerprint": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "pattern": "\\S"
+          }
+        },
+        "required": [
+          "schema_version",
+          "approval_id",
+          "task_id",
+          "decision",
+          "action_fingerprint",
+          "idempotency_key"
+        ]
+      },
+      "Common": {
+        "title": "Common",
+        "$defs": {
+          "Uuid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "Reference": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "\\S"
+          },
+          "UtcTimestamp": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?Z$"
+          },
+          "HttpUrl": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https?://",
+            "maxLength": 4096
+          },
+          "ReplyTarget": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "channel_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "pattern": "\\S"
+              },
+              "message_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "pattern": "\\S"
+              },
+              "thread_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "pattern": "\\S"
+              }
+            },
+            "required": [
+              "channel_id"
+            ]
+          },
+          "Attachment": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "content_ref": {
+                "$ref": "#/components/schemas/Common/$defs/Reference"
+              },
+              "media_type": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 255,
+                "pattern": "\\S"
+              },
+              "filename": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 255,
+                "pattern": "\\S"
+              }
+            },
+            "required": [
+              "content_ref",
+              "media_type"
+            ]
+          },
+          "TaskState": {
+            "type": "string",
+            "enum": [
+              "RECEIVED",
+              "REJECTED",
+              "QUEUED",
+              "AWAITING_APPROVAL",
+              "DISPATCHING",
+              "RETRY_PENDING",
+              "RUNNING",
+              "UNKNOWN",
+              "SUCCEEDED",
+              "FAILED",
+              "CANCELLED"
+            ]
+          }
+        }
+      },
+      "DeliveryRequest": {
+        "title": "DeliveryRequest",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1"
+          },
+          "task_id": {
+            "$ref": "#/components/schemas/Common/$defs/Uuid"
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "pattern": "\\S"
+          },
+          "channel": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "\\S"
+          },
+          "reply_target": {
+            "$ref": "#/components/schemas/Common/$defs/ReplyTarget"
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 65536
+          },
+          "artifacts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Common/$defs/Reference"
+            },
+            "maxItems": 100
+          }
+        },
+        "required": [
+          "schema_version",
+          "task_id",
+          "idempotency_key",
+          "channel",
+          "reply_target",
+          "text",
+          "artifacts"
+        ]
+      },
+      "EventEnvelope": {
+        "title": "EventEnvelope",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1"
+          },
+          "event_id": {
+            "$ref": "#/components/schemas/Common/$defs/Uuid"
+          },
+          "platform": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "\\S"
+          },
+          "platform_event_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "\\S"
+          },
+          "event_type": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "\\S"
+          },
+          "occurred_at": {
+            "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+          },
+          "actor_external_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "\\S"
+          },
+          "tenant_id": {
+            "$ref": "#/components/schemas/Common/$defs/Uuid"
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 65536
+          },
+          "urls": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Common/$defs/HttpUrl"
+            },
+            "maxItems": 100
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Common/$defs/Attachment"
+            },
+            "maxItems": 100
+          },
+          "reply_target": {
+            "$ref": "#/components/schemas/Common/$defs/ReplyTarget"
+          },
+          "auth_context": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "identity_mapping_ref": {
+                "$ref": "#/components/schemas/Common/$defs/Reference"
+              }
+            },
+            "required": [
+              "identity_mapping_ref"
+            ]
+          }
+        },
+        "required": [
+          "schema_version",
+          "event_id",
+          "platform",
+          "platform_event_id",
+          "event_type",
+          "occurred_at",
+          "actor_external_id",
+          "tenant_id",
+          "text",
+          "urls",
+          "attachments",
+          "reply_target",
+          "auth_context"
+        ]
+      },
+      "RemoteTaskRef": {
+        "title": "RemoteTaskRef",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1"
+          },
+          "task_id": {
+            "$ref": "#/components/schemas/Common/$defs/Uuid"
+          },
+          "agent_id": {
+            "$ref": "#/components/schemas/Common/$defs/Reference"
+          },
+          "remote_task_id": {
+            "$ref": "#/components/schemas/Common/$defs/Reference"
+          },
+          "correlation_id": {
+            "$ref": "#/components/schemas/Common/$defs/Uuid"
+          },
+          "accepted_at": {
+            "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+          }
+        },
+        "required": [
+          "schema_version",
+          "task_id",
+          "agent_id",
+          "remote_task_id",
+          "correlation_id",
+          "accepted_at"
+        ]
+      },
+      "RoutineRef": {
+        "title": "RoutineRef",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1"
+          },
+          "routine_id": {
+            "$ref": "#/components/schemas/Common/$defs/Uuid"
+          },
+          "owner_agent_id": {
+            "$ref": "#/components/schemas/Common/$defs/Reference"
+          },
+          "remote_schedule_ref": {
+            "$ref": "#/components/schemas/Common/$defs/Reference"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "PAUSED",
+              "REMOVED",
+              "UNKNOWN"
+            ]
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+          },
+          "last_verified_at": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "schema_version",
+          "routine_id",
+          "owner_agent_id",
+          "remote_schedule_ref",
+          "state",
+          "created_at",
+          "last_verified_at"
+        ]
+      },
+      "TaskRequest": {
+        "title": "TaskRequest",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1"
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "pattern": "\\S"
+          },
+          "source_event_id": {
+            "$ref": "#/components/schemas/Common/$defs/Uuid"
+          },
+          "intent": {
+            "type": "string",
+            "enum": [
+              "summarize",
+              "save_reference",
+              "delegate",
+              "research",
+              "schedule",
+              "workflow"
+            ]
+          },
+          "requested_agent": {
+            "$ref": "#/components/schemas/Common/$defs/Reference"
+          },
+          "objective": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 16384,
+            "pattern": "\\S"
+          },
+          "context_refs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Common/$defs/Reference"
+            },
+            "maxItems": 100
+          },
+          "reply_target_ref": {
+            "$ref": "#/components/schemas/Common/$defs/Reference"
+          }
+        },
+        "required": [
+          "schema_version",
+          "idempotency_key",
+          "intent",
+          "objective",
+          "context_refs"
+        ]
+      },
+      "TaskStatus": {
+        "title": "TaskStatus",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1"
+          },
+          "task_id": {
+            "$ref": "#/components/schemas/Common/$defs/Uuid"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Common/$defs/TaskState"
+          },
+          "assigned_agent": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Common/$defs/Reference"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "remote_task_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Common/$defs/Reference"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+          },
+          "updated_at": {
+            "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "\\S"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "result_refs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Common/$defs/Reference"
+            },
+            "maxItems": 100
+          }
+        },
+        "required": [
+          "schema_version",
+          "task_id",
+          "status",
+          "assigned_agent",
+          "remote_task_id",
+          "created_at",
+          "updated_at",
+          "error_code",
+          "result_refs"
+        ]
+      }
+    }
+  }
+}

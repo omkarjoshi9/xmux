@@ -1,0 +1,5 @@
+# Local implementation plans
+/plan/
+
+# Local dependency installations
+node_modules/

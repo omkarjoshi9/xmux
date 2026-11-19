@@ -2,210 +2,98 @@
 
 # XMUX
 
-### Universal Personal Agent Gateway
+### Your apps. Your agents. One connected workflow.
 
-**Capture where you are. Delegate to the right agent. Follow the work anywhere.**
+Capture an idea wherever you find it. Put the right assistant to work. Get the result where you need it.
 
-Messages, mentions, shares, and MCP calls → coordinated work across your existing assistants.
+**Universal Personal Agent Gateway**
 
-[Architecture](#architecture) · [MVP](#mvp-scope) · [Ownership](#developer-ownership) · [Roadmap](#roadmap)
+[How it works](#how-it-works) · [What you can do](#what-you-can-do) · [Integrations](#integrations) · [Project status](#project-status)
 
 </div>
 
 ---
 
-> **Status: architecture specification / MVP planning.** This repository currently contains project documentation. The services and integrations below are planned capabilities.
+## From discovery to done
 
-## What is XMUX?
+A useful post in your feed. A library worth trying. A message that needs research. Turning any of them into action usually means switching apps, copying context, and keeping track of several conversations.
 
-XMUX connects the apps where you discover information to the assistants that can act on it. Capture an authorized message, post, or URL; delegate a structured task; track its progress; and receive the result through a supported channel or MCP client.
+XMUX connects those moments to your existing AI assistants and coding agents. Send a message, share a link, or make an MCP tool call. XMUX carries the context forward, coordinates the work, and keeps the result within reach.
 
-XMUX owns intake, coordination, approvals, and delivery. Destination assistants retain their own memory, schedules, execution environments, and artifacts. The coordination ledger stores task state and remote references, with limited content retention governed by policy.
+> Share a technical post from Telegram. Ask Hermes to research it. Approve a prototype. Send it to a coding-agent multiplexer. Check the outcome from Claude through MCP.
+>
+> That's the experience we're building.
 
-### The north-star demo
+## How it works
 
-1. **Capture** — Share a technical post with the Telegram bot.
-2. **Research** — Ask Hermes to evaluate it through a supported interface.
-3. **Approve** — Review a checkpoint before repository modifications.
-4. **Build** — Send the approved prototype to an existing coding multiplexer.
-5. **Track** — Check status and artifact links from Claude or another compatible, authorized MCP client.
+1. **Capture** — Send a message, mention a supported bot, share content, or use an authorized MCP client.
+2. **Choose** — Name an assistant or let XMUX route the task based on capabilities, preferences, and availability.
+3. **Coordinate** — Follow progress across agents, with approval checkpoints before sensitive actions.
+4. **Receive** — Get results, status updates, and artifact links through a supported channel or MCP client.
 
-## Architecture
+Your assistants keep their memory, schedules, and execution environments. XMUX connects their work through shared task references and coordination state.
 
-```mermaid
-flowchart TB
-    channels["Telegram · Discord · Share-to-XMUX"] --> gateway
-    clients["Authorized MCP clients"] <--> mcp
+## What you can do
 
-    subgraph control["Control plane — Developer 3"]
-        mcp["Remote MCP server"]
-        api["Event and task API"]
-        ledger[("PostgreSQL coordination ledger")]
-        policy["Authorization and approval"]
-        worker["Durable queue and workflow workers"]
-        mcp <--> api
-        api <--> ledger
-        api --> policy --> worker
-    end
+### Turn content into useful work
 
-    gateway["Channel gateway — Developer 1"] -->|Verified events| api
-    worker --> mux["Agent multiplexer — Developer 2"]
-    mux <--> personal["Personal assistants"]
-    mux <--> coding["Coding-agent multiplexers"]
-    mux -->|Remote IDs, status, results| worker
-    worker -->|Reply jobs| gateway
-    gateway -->|Results or delivery status| channels
-```
+Send an accessible article, discussion, or message for a summary, deeper research, or follow-up task. Source links and authorized context travel with the request.
 
-**Verified events → durable coordination → capable agents → traceable results.**
+### Bring the right agent to each step
 
-Every adapter declares its actual capabilities. Platform access, agent interfaces, and MCP client support must be verified before enabling an integration.
+Use a research assistant to evaluate an idea, then hand an approved implementation task to a coding multiplexer. Each destination handles the work it supports.
 
-## MVP scope
+### Pick up where you left off
 
-| Area         | Initial target                                                                                        |
-| ------------ | ----------------------------------------------------------------------------------------------------- |
-| Channels     | Telegram and Discord capture and replies using supported bot APIs                                     |
-| Agents       | One personal assistant and one existing coding multiplexer                                            |
-| Coordination | Persistent tasks, durable workers, reconciliation, approvals, workflow dependencies                   |
-| MCP          | Authorized capture, delegation, discovery, status, approval, reference search, and supported routines |
-| Operations   | Docker Compose on a VPS, PostgreSQL, Redis, CI, health checks, metrics, runbook, backups              |
+Start a task in a messaging app and check its status from an authorized MCP client. Track which agent owns the work and find the resulting references in one place.
 
-Supported actions will include summarizing, researching, delegating instructions, saving references where supported, coordinating dependent tasks, and checking results. Routine creation requires an assistant that confirms scheduling support and returns a remote schedule ID.
+### Keep control of consequential actions
 
-Slack and GitHub are follow-on integrations. WhatsApp Business, Instagram professional accounts, Reddit, X, and LinkedIn require platform-specific feasibility and permission checks. Explicit browser sharing is a planned fallback for restricted platforms.
+Review approval checkpoints before actions such as repository changes or outbound posting. Captured posts and documents are treated as source material; they cannot grant permissions.
 
-## Reliability and trust
+### Delegate recurring work
 
-- **Verified identity:** map platform identities to trusted principals; require explicit linking for cross-platform privileges.
-- **Authorized content:** inaccessible sources return `content_unavailable` or a request for supplied text. Captured content cannot grant execution permissions.
-- **Capability-aware routing:** honor explicit agent selection subject to capabilities, authorization, and availability. Return explicit errors for unsupported operations.
-- **Durable tasks:** survive restarts and deduplicate repeated events using idempotency keys.
-- **Safe recovery:** reconcile uncertain dispatches using remote task or correlation IDs before retrying a non-idempotent action.
-- **Approval checkpoints:** sensitive actions, including repository changes and outbound posts, wait for authorized approval according to policy.
-- **Minimal retention:** retain coordination metadata and remote references; redact secrets and private message content from logs.
-- **Service isolation:** authenticate internal endpoints and keep them off public ingress. Remote MCP tools require authentication and authorization.
+Ask a supported assistant to own a routine. XMUX tracks the remote schedule reference while that assistant manages execution.
 
-### Task lifecycle
+## Integrations
 
-```mermaid
-stateDiagram-v2
-    [*] --> received
-    received --> rejected: Invalid identity or permissions
-    received --> queued: Accepted
-    queued --> awaiting_approval: Sensitive action
-    awaiting_approval --> queued: Approved
-    awaiting_approval --> cancelled: Denied
-    queued --> dispatching
-    dispatching --> running: Remote acceptance
-    dispatching --> retry_pending: Transient failure
-    retry_pending --> dispatching: Reconciled safe retry
-    dispatching --> failed: Permanent error
-    running --> completed: Verified result
-    running --> failed: Terminal remote failure
-    running --> unknown: Remote status unavailable
-    unknown --> running: Remote task found
-    unknown --> failed: Confirmed unrecoverable
-    completed --> [*]
-    failed --> [*]
-    cancelled --> [*]
-    rejected --> [*]
-```
+XMUX is in early development. The initial release targets a focused set of connections:
 
-## Developer ownership
+| Connection                    | Planned experience                                                                                                    |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| **Telegram**                  | Capture requests and receive results through a bot                                                                    |
+| **Discord**                   | Create tasks through supported commands, mentions, and messages                                                       |
+| **Personal assistants**       | Delegate research and other supported tasks; Hermes is the first integration target                                   |
+| **Coding-agent multiplexers** | Hand off approved coding work and track status and artifacts                                                          |
+| **MCP clients**               | Capture content, discover agents, delegate work, approve actions, and query status from compatible authorized clients |
 
-All three developers agree on `packages/contracts` before independent implementation. Cross-team changes require a contract PR and contract tests. Each developer owns their service logic and mocks.
+Future connections under consideration include Slack, GitHub, browser sharing, and additional messaging and social platforms. Availability depends on official APIs, permissions, and supported agent interfaces.
 
-| Owner                           | Modules                                                                           | Responsibilities                                                                                  |
-| ------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| **Developer 1 — Gateway**       | `apps/gateway`, `packages/channel-adapters`, `packages/content-extractors`        | Bot integrations, verification, sender mapping, authorized extraction, normalized events, replies |
-| **Developer 2 — Multiplexer**   | `apps/multiplexer`, `packages/agent-adapters`, `packages/routing-engine`          | Registry, capabilities, health, routing, dispatch, remote status/results, federated references    |
-| **Developer 3 — Control plane** | `apps/orchestrator`, `apps/mcp-server`, `packages/workflow-sdk`, `infrastructure` | Database, APIs, state machine, queue, reconciliation, approvals, workflows, MCP, operations       |
+## Built around trust and continuity
 
-### Planned repository structure
+- **Your agents stay yours.** Long-term memory, schedules, and execution artifacts remain with the owning assistant.
+- **Access stays explicit.** XMUX uses authorized content and supported interfaces. When content is unavailable, it reports the limitation.
+- **Capabilities stay honest.** An integration only exposes operations its destination actually supports.
+- **Work stays traceable.** Task references connect the original request, destination agent, progress, and outcome.
+- **Recovery respects side effects.** Persistent task state and dispatch reconciliation are designed to prevent duplicate work after interruptions.
+- **Identity follows permissions.** Verified account linking and authorization govern access across channels.
 
-```text
-xmux/
-├── apps/
-│   ├── gateway/               # Developer 1
-│   ├── multiplexer/           # Developer 2
-│   ├── orchestrator/          # Developer 3
-│   └── mcp-server/            # Developer 3
-├── packages/
-│   ├── contracts/             # Shared
-│   ├── channel-adapters/      # Developer 1
-│   ├── content-extractors/    # Developer 1
-│   ├── agent-adapters/        # Developer 2
-│   ├── routing-engine/        # Developer 2
-│   └── workflow-sdk/          # Developer 3
-├── infrastructure/            # Developer 3
-├── tests/
-│   ├── contracts/
-│   ├── integration/
-│   └── end-to-end/
-└── docs/
-```
+## Project status
 
-## Planned interfaces
+**XMUX is currently in architecture and MVP development.** The workflows and integrations described here are the product direction; a runnable release is not yet available.
 
-| Endpoint                           | Purpose                                | Owner       |
-| ---------------------------------- | -------------------------------------- | ----------- |
-| `POST /v1/events`                  | Ingest verified normalized events      | Developer 3 |
-| `POST /v1/tasks`                   | Create an idempotent coordination task | Developer 3 |
-| `GET /v1/tasks/{id}`               | Read authorized task status            | Developer 3 |
-| `GET /v1/tasks/{id}/result`        | Read results or remote references      | Developer 3 |
-| `POST /v1/tasks/{id}/approve`      | Record authorized approval             | Developer 3 |
-| `GET /v1/agents`                   | Discover agents and capabilities       | Developer 2 |
-| `POST /internal/agents/dispatch`   | Delegate work                          | Developer 2 |
-| `GET /internal/agents/{id}/health` | Check agent availability               | Developer 2 |
-| `POST /internal/delivery`          | Submit an outbound reply job           | Developer 1 |
-| `/mcp`                             | Expose authorized remote MCP tools     | Developer 3 |
+The first milestone is a complete loop: capture a request, delegate it to an agent, track it reliably, and deliver a result. Subsequent milestones add cross-agent workflows, approvals, authorized MCP access, and delegated routines.
 
-Planned MCP tools: `capture_content`, `delegate_task`, `get_task_status`, `list_agents`, `approve_action`, `create_routine`, and `search_references`. Routine creation must verify destination support and track the remote schedule reference.
+Setup instructions and integration guides will arrive alongside the working release.
 
-## Roadmap
+## Contributing
 
-The four-week schedule is a planning target. Platform approvals and external interfaces may affect delivery.
+Ideas, bug reports, and integration proposals are welcome through [GitHub Issues](https://github.com/omkarjoshi9/xmux/issues). For a new integration, describe the supported API or CLI, available permissions, and the workflow it would enable.
 
-| Milestone                    | Focus                                                                 | Exit condition                                         |
-| ---------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------ |
-| **Week 1 — Foundation**      | Contracts, monorepo, database, task API, Telegram, mock agent         | Telegram → verified event → durable mock task → reply  |
-| **Week 2 — Real delegation** | Discord, extraction, agent adapters, routing, workers, reconciliation | Real agent task → result → channel reply               |
-| **Week 3 — Coordination**    | MCP, identity linking, fallback, approval, dependent workflows        | Authorized MCP delegation and approval-gated workflows |
-| **Week 4 — Hardening**       | Delegated routines, reliability, CI, Docker, monitoring, runbook      | North-star demo and acceptance checks pass             |
+---
 
-### MVP acceptance checklist
+<div align="center">
 
-- [ ] Duplicate Telegram webhook delivery creates exactly one task.
-- [ ] Discord commands create tasks and reply in the correct context.
-- [ ] Invalid signatures and unauthorized users are rejected.
-- [ ] Extraction records provenance and reports inaccessible content explicitly.
-- [ ] Explicit agent choice takes precedence over automatic routing.
-- [ ] Capability mismatch returns `unsupported_capability`.
-- [ ] Hermes returns a verifiable result through a supported interface.
-- [ ] A coding multiplexer returns status and artifact references.
-- [ ] Tasks remain queryable after restart.
-- [ ] Dispatch timeouts are reconciled before retrying.
-- [ ] Sensitive workflow steps wait for authorized approval.
-- [ ] An authorized MCP client can list agents, delegate, and check status.
-- [ ] Routine creation requires confirmed support and a remote schedule ID.
-- [ ] Results reach the originating channel or record explicit delivery failure.
-- [ ] Logs and responses expose neither secrets nor another user's task data.
+**Discover anywhere. Coordinate through XMUX.**
 
-## Development workflow
-
-Use a feature branch for every change, including documentation. Keep changes within module ownership and review shared contracts before dependent implementation.
-
-```bash
-git switch main
-git pull --ff-only origin main
-git switch -c feat/short-description
-```
-
-The backend framework, package tooling, exact agent interfaces, retention window, and detailed approval policy remain open decisions. Installation and startup instructions will be added with the working scaffold.
-
-## Boundaries and expansion
-
-Integrations use supported APIs, CLIs, or webhooks. The MVP does not assume unrestricted social-platform access or automate unsupported assistant chat interfaces. Each adapter must publish supported triggers, reply methods, content access, permissions, rate limits, retention restrictions, and unsupported operations.
-
-Later phases may add more channels, workflow templates, a dashboard, granular permissions, multi-tenant support, and cost-aware routing after validating the core capture-to-result loop.
+</div>

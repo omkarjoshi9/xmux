@@ -12,7 +12,7 @@ from .dispatch_ledger import DispatchConflict, DispatchInProgress
 
 
 def create_app(dispatcher: Dispatcher, service_token: str, *, references=None, approval_verifier=None,
-               openbot=None, dispatch_ledger=None, authorize_principal=None, verify_delegation=None,
+               openbot=None, grokbot=None, dispatch_ledger=None, authorize_principal=None, verify_delegation=None,
                schema_validator=None, orchestrator_service_id=None, audience="multiplexer") -> Callable:
     if not service_token:
         raise ValueError("service_token_required")
@@ -138,6 +138,28 @@ def create_app(dispatcher: Dispatcher, service_token: str, *, references=None, a
                 result = {"delivery_id": delivery.delivery_id, "state": "delivery_accepted",
                           "execution_state": "unknown", "duplicate": delivery.duplicate}
                 dispatch_ledger.accepted(task, "openbot", json.dumps(result, separators=(",", ":")))
+                return respond(start_response, "202 Accepted", result)
+            if requested_agent == "grokbot":
+                if grokbot is None:
+                    return respond(start_response, "503 Service Unavailable", {"error": "grokbot_not_configured"})
+                eligible = dispatcher.registry.discover_configs(principal, frozenset({"routine:trigger"}), tenant)
+                if not any(config.agent_id == "grokbot" for config in eligible):
+                    return respond(start_response, "403 Forbidden", {"error": "forbidden"})
+                reservation = dispatch_ledger.reserve(task, "grokbot")
+                if reservation.state == "accepted":
+                    return respond(start_response, "200 OK", json.loads(reservation.remote_ref))
+                try:
+                    delivery = grokbot.submit({"task_id": task.task_id, "objective": task.objective,
+                                               "context_refs": payload.get("context_refs", [])})
+                except Exception as exc:
+                    raise UnknownDispatch(task.task_id) from exc
+                if not delivery.accepted:
+                    # Retain the reservation until the control plane reconciles
+                    # the rejected or uncertain request with its retry policy.
+                    raise UnknownDispatch(task.task_id)
+                result = {"state": "delivery_accepted", "execution_state": "started",
+                          "status_supported": False, "result_supported": False}
+                dispatch_ledger.accepted(task, "grokbot", json.dumps(result, separators=(",", ":")))
                 return respond(start_response, "202 Accepted", result)
             reservation_agent = requested_agent or "automatic"
             reservation = dispatch_ledger.reserve(task, reservation_agent)

@@ -1,6 +1,8 @@
 """T3 Code bridge for a configured, approved project and worktree."""
 
 from dataclasses import dataclass
+import hashlib
+import json
 from typing import Callable, Mapping, Protocol
 
 from .contracts import AgentResult, AgentState, AgentTask
@@ -41,7 +43,10 @@ class T3Bridge:
             "prompt": task.objective,
             "newWorktree": {"baseBranch": base_branch, "branch": branch, "runSetupScript": False},
             "runtimeMode": "approval-required",
-            "idempotencyKey": task.idempotency_key,
+            "idempotencyKey": hashlib.sha256(json.dumps(
+                [task.tenant_id, task.principal_id, task.task_id, task.idempotency_key],
+                separators=(",", ":"), ensure_ascii=False,
+            ).encode("utf-8")).hexdigest(),
             "wait": False,
         })
         return T3Submission(response)
@@ -54,11 +59,11 @@ class T3Bridge:
             raise ValueError("unexpected_t3_thread")
         return result
 
-    def status(self, thread_id: str) -> AgentState:
+    def status(self, thread_id: str, turn_id: str) -> AgentState:
         result = self.read_thread(thread_id)
         turn = result.get("turn")
-        if not isinstance(turn, Mapping):
-            raise LookupError("t3_turn_unavailable")
+        if not isinstance(turn, Mapping) or turn.get("turnId") != turn_id:
+            raise LookupError("t3_turn_unavailable_or_superseded")
         states = {"running": AgentState.RUNNING, "completed": AgentState.COMPLETED,
                   "interrupted": AgentState.INTERRUPTED, "error": AgentState.FAILED}
         state = turn.get("state")
@@ -66,10 +71,12 @@ class T3Bridge:
             raise LookupError("t3_turn_state_unknown")
         return states[state]
 
-    def result(self, thread_id: str) -> AgentResult | None:
+    def result(self, thread_id: str, turn_id: str) -> AgentResult | None:
         result = self.read_thread(thread_id)
         turn = result.get("turn")
-        if not isinstance(turn, Mapping) or turn.get("state") != "completed":
+        if not isinstance(turn, Mapping) or turn.get("turnId") != turn_id:
+            raise LookupError("t3_turn_unavailable_or_superseded")
+        if turn.get("state") != "completed":
             return None
         url = result.get("url")
         if not isinstance(url, str) or not url:

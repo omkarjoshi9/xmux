@@ -3,12 +3,13 @@
 import hmac
 import json
 from datetime import datetime, timezone
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from typing import Callable
 
-from .contracts import AgentTask, PersistedTaskReference
+from .contracts import AgentCapabilities, AgentTask, PersistedTaskReference
 from .dispatch import DispatchContext, Dispatcher, UnknownDispatch, ApprovedCodingScope
 from .dispatch_ledger import DispatchConflict, DispatchInProgress
+from .wire import capabilities_to_wire
 
 
 def create_app(dispatcher: Dispatcher, service_token: str, *, references=None, approval_verifier=None,
@@ -43,6 +44,25 @@ def create_app(dispatcher: Dispatcher, service_token: str, *, references=None, a
                     {"agent_id": c.agent_id, "capabilities": sorted(c.operations)}
                     for c in configs
                 ]})
+            if path == "/internal/agents/capabilities" and method == "POST":
+                agent_id = data.get("agent_id")
+                configs = dispatcher.registry.discover_configs(principal, tenant_id=tenant)
+                config = next((item for item in configs if item.agent_id == agent_id), None)
+                if config is None:
+                    return respond(start_response, "404 Not Found", {"error": "not_found"})
+                adapter = dispatcher.adapters.get(agent_id)
+                if adapter is not None:
+                    capabilities = adapter.capabilities()
+                    capabilities = replace(capabilities, operations=capabilities.operations & config.operations)
+                elif (agent_id == "openbot" and openbot is not None) or (agent_id == "grokbot" and grokbot is not None):
+                    capabilities = AgentCapabilities(config.operations)
+                else:
+                    return respond(start_response, "503 Service Unavailable", {"error": "unavailable"})
+                document = capabilities_to_wire(agent_id, capabilities)
+                if schema_validator is None:
+                    return respond(start_response, "503 Service Unavailable", {"error": "schema_validator_unavailable"})
+                schema_validator.validate("AgentCapabilities", document)
+                return respond(start_response, "200 OK", document)
             if path == "/internal/agents/status" or path == "/internal/agents/results":
                 if method != "POST":
                     return respond(start_response, "405 Method Not Allowed", {"error":"method_not_allowed"})
@@ -89,6 +109,11 @@ def create_app(dispatcher: Dispatcher, service_token: str, *, references=None, a
                 if field in task_data:
                     request_document[field] = task_data[field]
             schema_validator.validate("TaskRequest", request_document)
+            if ("requested_agent" in task_data and data.get("requested_agent") is not None
+                    and task_data["requested_agent"] != data["requested_agent"]):
+                raise ValueError("requested_agent_mismatch")
+            payload = dict(payload)
+            payload["context_refs"] = request_document["context_refs"]
             task = AgentTask(task_data["task_id"], task_data["idempotency_key"], principal, tenant,
                              task_data["intent"], task_data["objective"], frozenset(caps), payload)
             # Coding writes require an independently verified approval integration.

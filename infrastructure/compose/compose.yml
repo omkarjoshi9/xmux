@@ -44,6 +44,10 @@ services:
     restart: 'no'
   orchestrator:
     <<: *control
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
     ports: ["127.0.0.1:58000:8000"]
     healthcheck:
       test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready')"]

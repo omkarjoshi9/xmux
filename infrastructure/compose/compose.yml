@@ -1,0 +1,68 @@
+name: xmux
+x-control: &control
+  build:
+    context: ../..
+    dockerfile: infrastructure/control-plane/Dockerfile
+  environment: &environment
+    DATABASE_URL: postgresql://xmux:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/xmux
+    REDIS_URL: redis://redis:6379/0
+    XMUX_ENV: development
+  depends_on:
+    postgres: {condition: service_healthy}
+    redis: {condition: service_healthy}
+  networks: [private]
+  restart: unless-stopped
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: xmux
+      POSTGRES_USER: xmux
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    ports: ["127.0.0.1:55432:5432"]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U xmux -d xmux"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+    networks: [private]
+  redis:
+    image: redis:7-alpine
+    command: [redis-server, --appendonly, 'yes']
+    volumes: [redis_data:/data]
+    ports: ["127.0.0.1:56379:6379"]
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+    networks: [private]
+  migrate:
+    <<: *control
+    command: [python, -m, xmux_control.db.migrate]
+    restart: 'no'
+  orchestrator:
+    <<: *control
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    ports: ["127.0.0.1:58000:8000"]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+  worker:
+    <<: *control
+    command: [python, -m, xmux_control.worker]
+  mcp-server:
+    <<: *control
+    command: [uvicorn, 'xmux_mcp.app:create_app', --factory, --host, 0.0.0.0, --port, '8001', --no-access-log]
+    ports: ["127.0.0.1:58001:8001"]
+volumes:
+  postgres_data:
+  redis_data:
+networks:
+  private:

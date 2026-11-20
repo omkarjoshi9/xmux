@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmux.example/contracts/v1/AgentList.schema.json",
+  "title": "AgentList",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1"
+    },
+    "agents": {
+      "type": "array",
+      "items": {
+        "$ref": "https://xmux.example/contracts/v1/AgentCapabilities.schema.json"
+      },
+      "maxItems": 100
+    }
+  },
+  "required": [
+    "schema_version",
+    "agents"
+  ]
+}

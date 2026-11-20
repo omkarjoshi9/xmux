@@ -14,10 +14,13 @@ class AgentState(StrEnum):
 @dataclass(frozen=True)
 class AgentCapabilities:
     operations: frozenset[str]
-    supports_status: bool = True
+    supports_status: bool = False
     supports_cancel: bool = False
     supports_schedule: bool = False
     supports_memory_lookup: bool = False
+    supports_callbacks: bool = False
+    supports_correlation_lookup: bool = False
+    dispatch_idempotency_retention_seconds: int | None = None
 
 
 @dataclass(frozen=True)

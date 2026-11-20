@@ -12,7 +12,7 @@ class MockAgent:
         self._tasks: dict[str, AgentTask] = {}
 
     def capabilities(self) -> AgentCapabilities:
-        return AgentCapabilities(operations=self._operations)
+        return AgentCapabilities(operations=self._operations, supports_status=True)
 
     def health(self) -> str:
         return "healthy"

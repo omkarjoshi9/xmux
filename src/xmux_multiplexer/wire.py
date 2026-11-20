@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import Any, Mapping
 from uuid import UUID
 
-from .contracts import AgentTask, RemoteTaskReceipt
+from .contracts import AgentCapabilities, AgentTask, RemoteTaskReceipt
 
 
 def task_from_wire(
@@ -58,4 +58,25 @@ def receipt_to_wire(
         "remote_task_id": receipt.remote_task_id,
         "correlation_id": correlation_id,
         "accepted_at": timestamp,
+    }
+
+
+def capabilities_to_wire(agent_id: str, capabilities: AgentCapabilities) -> dict[str, object]:
+    """Expose only explicitly declared support in Dev 3's v1 schema."""
+    retention = capabilities.dispatch_idempotency_retention_seconds
+    if retention is not None and not 1 <= retention <= 31536000:
+        raise ValueError("invalid_idempotency_retention")
+    idempotency = ({"supported": False} if retention is None else
+                   {"supported": True, "scope": "principal_agent_operation",
+                    "retention_seconds": retention})
+    return {
+        "schema_version": "1", "agent_id": agent_id,
+        "operations": sorted(capabilities.operations),
+        "supports_status": capabilities.supports_status,
+        "supports_cancel": capabilities.supports_cancel,
+        "supports_schedule": capabilities.supports_schedule,
+        "supports_memory_lookup": capabilities.supports_memory_lookup,
+        "supports_callbacks": capabilities.supports_callbacks,
+        "supports_correlation_lookup": capabilities.supports_correlation_lookup,
+        "dispatch_idempotency": idempotency,
     }

@@ -134,7 +134,7 @@ class Dispatcher:
         required = task.required_capabilities
         if task.intent in intent_capabilities:
             required = required | {intent_capabilities[task.intent]}
-        candidates = self.registry.discover_configs(context.principal_id, required)
+        candidates = self.registry.discover_configs(context.principal_id, required, context.tenant_id)
         if requested_agent is not None:
             candidates = tuple(c for c in candidates if c.agent_id == requested_agent)
         available = []

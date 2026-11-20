@@ -14,6 +14,7 @@ class AgentConfig:
     operations: frozenset[str]
     principals: frozenset[str]
     credential_ref: str | None = None
+    tenants: frozenset[str] = frozenset()
 
     def __post_init__(self) -> None:
         if not self.agent_id or any(c.isspace() for c in self.agent_id):
@@ -48,6 +49,8 @@ class AgentRegistry:
         return tuple(AgentCapabilities(config.operations) for config in self._configs.values()
                      if principal_id in config.principals and required.issubset(config.operations))
 
-    def discover_configs(self, principal_id: str, required: frozenset[str] = frozenset()) -> tuple[AgentConfig, ...]:
+    def discover_configs(self, principal_id: str, required: frozenset[str] = frozenset(),
+                         tenant_id: str | None = None) -> tuple[AgentConfig, ...]:
         return tuple(c for c in self._configs.values()
-                     if principal_id in c.principals and required.issubset(c.operations))
+                     if principal_id in c.principals and required.issubset(c.operations)
+                     and (tenant_id is None or tenant_id in c.tenants))

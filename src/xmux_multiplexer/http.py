@@ -2,15 +2,18 @@
 
 import hmac
 import json
+from datetime import datetime, timezone
 from dataclasses import asdict
 from typing import Callable
 
 from .contracts import AgentTask, PersistedTaskReference
 from .dispatch import DispatchContext, Dispatcher, UnknownDispatch, ApprovedCodingScope
+from .dispatch_ledger import DispatchConflict, DispatchInProgress
 
 
 def create_app(dispatcher: Dispatcher, service_token: str, *, references=None, approval_verifier=None,
-               openbot=None, reserve_openbot=None) -> Callable:
+               openbot=None, dispatch_ledger=None, authorize_principal=None, verify_delegation=None,
+               schema_validator=None, orchestrator_service_id=None, audience="multiplexer") -> Callable:
     if not service_token:
         raise ValueError("service_token_required")
 
@@ -30,10 +33,12 @@ def create_app(dispatcher: Dispatcher, service_token: str, *, references=None, a
             tenant = data["tenant_id"]
             if not isinstance(principal, str) or not principal.strip() or not isinstance(tenant, str) or not tenant.strip():
                 raise ValueError("invalid_identity")
+            if authorize_principal is None or not authorize_principal(principal, tenant, data):
+                return respond(start_response, "403 Forbidden", {"error": "forbidden"})
             path = environ.get("PATH_INFO")
             method = environ.get("REQUEST_METHOD")
             if path == "/internal/agents/list" and method == "POST":
-                configs = dispatcher.registry.discover_configs(principal)
+                configs = dispatcher.registry.discover_configs(principal, tenant_id=tenant)
                 return respond(start_response, "200 OK", {"agents": [
                     {"agent_id": c.agent_id, "capabilities": sorted(c.operations)}
                     for c in configs
@@ -41,10 +46,16 @@ def create_app(dispatcher: Dispatcher, service_token: str, *, references=None, a
             if path == "/internal/agents/status" or path == "/internal/agents/results":
                 if method != "POST":
                     return respond(start_response, "405 Method Not Allowed", {"error":"method_not_allowed"})
-                if references is None:
+                if references is None and dispatch_ledger is None:
                     return respond(start_response, "503 Service Unavailable", {"error":"reference_store_unavailable"})
                 key = data.get("task_id")
-                ref = references.get(key)
+                ref = references.get(key) if references is not None else None
+                if ref is None and dispatch_ledger is not None:
+                    stored = dispatch_ledger.get_receipt(tenant, principal, key)
+                    if stored and stored.get("state") == "delivery_accepted":
+                        return respond(start_response, "422 Unprocessable Entity", {"error": "unsupported_capability"})
+                    if stored:
+                        ref = PersistedTaskReference(stored["agent_id"], stored["remote_task_id"], tenant, principal)
                 if ref is None:
                     return respond(start_response, "404 Not Found", {"error":"unknown_task"})
                 context = DispatchContext(principal, tenant)
@@ -67,17 +78,42 @@ def create_app(dispatcher: Dispatcher, service_token: str, *, references=None, a
                 raise ValueError("invalid_task")
             task = AgentTask(task_data["task_id"], task_data["idempotency_key"], principal, tenant,
                              task_data["intent"], task_data["objective"], frozenset(caps), payload)
-            if references is not None and task.task_id in references:
-                return respond(start_response, "409 Conflict", {"error": "task_already_dispatched"})
             # Coding writes require an independently verified approval integration.
+            requested_agent = data.get("requested_agent")
+            if schema_validator is None or verify_delegation is None or not orchestrator_service_id:
+                return respond(start_response, "503 Service Unavailable", {"error": "delegation_verifier_unavailable"})
+            # Verification must authenticate the grant and bind its action fingerprint
+            # to this exact task before returning claims. Raw request claims are not trusted.
+            grant = verify_delegation(principal, tenant, task, requested_agent, data.get("delegation"))
+            if not isinstance(grant, dict):
+                return respond(start_response, "403 Forbidden", {"error": "invalid_delegation"})
+            schema_validator.validate("DelegationContext", grant)
+            now = datetime.now(timezone.utc)
+            issued = datetime.fromisoformat(grant["issued_at"].replace("Z", "+00:00"))
+            expires = datetime.fromisoformat(grant["expires_at"].replace("Z", "+00:00"))
+            if (grant["principal_id"] != principal or grant["tenant_id"] != tenant
+                    or grant["task_id"] != task.task_id or grant["scope"] != "tasks:dispatch"
+                    or grant["actor_service_id"] != orchestrator_service_id or grant["audience"] != audience
+                    or issued.tzinfo is None or expires.tzinfo is None or issued > now or expires <= now
+                    or (requested_agent is not None and grant["agent_id"] != requested_agent)):
+                return respond(start_response, "403 Forbidden", {"error": "invalid_delegation"})
+            # The verified grant binds a single agent, including automatic selections.
+            requested_agent = grant["agent_id"]
+            if dispatch_ledger is None:
+                return respond(start_response, "503 Service Unavailable", {"error": "dispatch_ledger_unavailable"})
             approval = data.get("approval")
             scope = approval_verifier(principal, tenant, approval, task) if approval_verifier and approval else None
-            if task.intent == "code_change" and scope is None:
-                return respond(start_response, "403 Forbidden", {"error":"approval_required"})
-            if data.get("requested_agent") == "openbot":
-                if openbot is None or reserve_openbot is None:
+            if task.intent == "code_change" or "coding" in task.required_capabilities:
+                tools = payload.get("allowed_tools")
+                if (scope is None or payload.get("repository") != scope.repository
+                        or payload.get("branch") != scope.branch or not isinstance(tools, list)
+                        or any(not isinstance(tool, str) for tool in tools)
+                        or not set(tools).issubset(scope.allowed_tools)):
+                    return respond(start_response, "403 Forbidden", {"error": "coding_scope_mismatch"})
+            if requested_agent == "openbot":
+                if openbot is None:
                     return respond(start_response, "503 Service Unavailable", {"error": "openbot_not_configured"})
-                eligible = dispatcher.registry.discover_configs(principal, frozenset({"coding"}))
+                eligible = dispatcher.registry.discover_configs(principal, frozenset({"coding"}), tenant)
                 if not any(config.agent_id == "openbot" for config in eligible):
                     return respond(start_response, "403 Forbidden", {"error": "forbidden"})
                 tools = payload.get("allowed_tools")
@@ -88,8 +124,9 @@ def create_app(dispatcher: Dispatcher, service_token: str, *, references=None, a
                     return respond(start_response, "403 Forbidden", {"error": "coding_scope_mismatch"})
                 # The injected control-plane store must atomically reserve and
                 # persist the task fingerprint before an external side effect.
-                if not reserve_openbot(task):
-                    return respond(start_response, "409 Conflict", {"error": "dispatch_already_reserved"})
+                reservation = dispatch_ledger.reserve(task, "openbot")
+                if reservation.state == "accepted":
+                    return respond(start_response, "200 OK", json.loads(reservation.remote_ref))
                 try:
                     delivery = openbot.submit(
                         tenant_id=tenant, task_id=task.task_id, idempotency_key=task.idempotency_key,
@@ -98,17 +135,26 @@ def create_app(dispatcher: Dispatcher, service_token: str, *, references=None, a
                     )
                 except Exception as exc:
                     raise UnknownDispatch(task.task_id) from exc
-                return respond(start_response, "202 Accepted", {
-                    "delivery_id": delivery.delivery_id, "state": "delivery_accepted",
-                    "execution_state": "unknown", "duplicate": delivery.duplicate,
-                })
-            receipt = dispatcher.submit(task, DispatchContext(principal, tenant, scope), data.get("requested_agent"))
+                result = {"delivery_id": delivery.delivery_id, "state": "delivery_accepted",
+                          "execution_state": "unknown", "duplicate": delivery.duplicate}
+                dispatch_ledger.accepted(task, "openbot", json.dumps(result, separators=(",", ":")))
+                return respond(start_response, "202 Accepted", result)
+            reservation_agent = requested_agent or "automatic"
+            reservation = dispatch_ledger.reserve(task, reservation_agent)
+            if reservation.state == "accepted":
+                return respond(start_response, "200 OK", json.loads(reservation.remote_ref))
+            receipt = dispatcher.submit(task, DispatchContext(principal, tenant, scope), requested_agent)
             ref = PersistedTaskReference(receipt.agent_id, receipt.remote_task_id, tenant, principal)
             if references is not None:
                 references[task.task_id] = ref
             result = asdict(receipt)
             result["state"] = receipt.state.value
+            dispatch_ledger.accepted(task, reservation_agent, json.dumps(result, separators=(",", ":")))
             return respond(start_response, "200 OK", result)
+        except DispatchConflict:
+            return respond(start_response, "409 Conflict", {"error": "idempotency_conflict"})
+        except DispatchInProgress:
+            return respond(start_response, "409 Conflict", {"error": "remote_outcome_unknown"})
         except (KeyError, TypeError, ValueError, json.JSONDecodeError):
             return respond(start_response, "400 Bad Request", {"error": "invalid_request"})
         except PermissionError:

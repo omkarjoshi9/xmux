@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Iterable
 from urllib.parse import urlsplit
 
-from .contracts import AgentCapabilities, AgentAdapter
+from .contracts import AgentCapabilities
 
 
 @dataclass(frozen=True)
@@ -27,8 +27,10 @@ class AgentConfig:
             raise ValueError("invalid_operations")
         if not self.principals or any(not x.strip() for x in self.principals):
             raise ValueError("invalid_principals")
-        if self.credential_ref is not None and (not self.credential_ref.strip() or "://" in self.credential_ref):
-            raise ValueError("credential_ref_must_be_a_secret_reference")
+        if self.credential_ref is not None:
+            scheme, separator, name = self.credential_ref.partition(":")
+            if scheme not in {"env", "vault"} or not separator or not name.strip():
+                raise ValueError("credential_ref_must_be_a_secret_reference")
 
 
 class AgentRegistry:

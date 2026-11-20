@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmux.example/contracts/v1/IdempotencyRecord.schema.json",
+  "title": "IdempotencyRecord",
+  "description": "Internal coordination metadata. RESERVED is not permission to execute after a crash. RETIRED prevents silent recreation after resource removal.",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1"
+        },
+        "scope": {
+          "$ref": "https://xmux.example/contracts/v1/IdempotencyScope.schema.json"
+        },
+        "fingerprint": {
+          "$ref": "https://xmux.example/contracts/v1/RequestFingerprint.schema.json"
+        },
+        "created_at": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+        },
+        "state": {
+          "const": "RESERVED"
+        }
+      },
+      "required": [
+        "schema_version",
+        "scope",
+        "fingerprint",
+        "created_at",
+        "state"
+      ]
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1"
+        },
+        "scope": {
+          "$ref": "https://xmux.example/contracts/v1/IdempotencyScope.schema.json"
+        },
+        "fingerprint": {
+          "$ref": "https://xmux.example/contracts/v1/RequestFingerprint.schema.json"
+        },
+        "created_at": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+        },
+        "state": {
+          "const": "ACCEPTED"
+        },
+        "resource_ref": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+        }
+      },
+      "required": [
+        "schema_version",
+        "scope",
+        "fingerprint",
+        "created_at",
+        "state",
+        "resource_ref"
+      ]
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1"
+        },
+        "scope": {
+          "$ref": "https://xmux.example/contracts/v1/IdempotencyScope.schema.json"
+        },
+        "fingerprint": {
+          "$ref": "https://xmux.example/contracts/v1/RequestFingerprint.schema.json"
+        },
+        "created_at": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+        },
+        "state": {
+          "const": "RETIRED"
+        },
+        "retired_at": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+        }
+      },
+      "required": [
+        "schema_version",
+        "scope",
+        "fingerprint",
+        "created_at",
+        "state",
+        "retired_at"
+      ]
+    }
+  ]
+}

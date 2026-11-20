@@ -2,7 +2,7 @@ import io
 import json
 import unittest
 
-from xmux_multiplexer.dispatch import Dispatcher
+from xmux_multiplexer.dispatch import ApprovedCodingScope, Dispatcher
 from xmux_multiplexer.http import create_app
 from xmux_multiplexer.mock import MockAgent
 from xmux_multiplexer.registry import AgentConfig, AgentRegistry
@@ -55,6 +55,31 @@ class HttpTests(unittest.TestCase):
     def app_dispatcher(self):
         config = AgentConfig("a", "https://example.org", frozenset({"research"}), frozenset({"alice"}))
         return Dispatcher(AgentRegistry([config]), {"a": self.agent})
+
+
+    def test_openbot_dispatch_requires_approval_and_returns_delivery_only(self):
+        from xmux_multiplexer.openbot import OpenBotDelivery
+        calls = []
+        class OpenBot:
+            def submit(self, **kwargs):
+                calls.append(kwargs)
+                return OpenBotDelivery("delivery", True, False)
+        configs = [AgentConfig("openbot", "https://openbot.example", frozenset({"coding"}), frozenset({"alice"}))]
+        dispatcher = Dispatcher(AgentRegistry(configs), {})
+        scope = ApprovedCodingScope("repo", "branch", frozenset({"write"}))
+        verifier = lambda principal, tenant, approval, task: scope if approval == "approved" else None
+        self.app = create_app(dispatcher, "secret", approval_verifier=verifier,
+                              openbot=OpenBot(), reserve_openbot=lambda task: True)
+        task = {"task_id": "t", "idempotency_key": "k", "intent": "code_change", "objective": "Build",
+                "payload": {"repository": "repo", "branch": "branch", "allowed_tools": ["write"]}}
+        body = {"principal_id": "alice", "tenant_id": "t", "task": task, "requested_agent": "openbot"}
+        self.assertTrue(self.request("/internal/agents/dispatch", body)[0].startswith("403"))
+        self.assertEqual(calls, [])
+        body["approval"] = "approved"
+        status, result = self.request("/internal/agents/dispatch", body)
+        self.assertTrue(status.startswith("202"))
+        self.assertEqual(result["execution_state"], "unknown")
+        self.assertEqual(len(calls), 1)
 
 
 if __name__ == "__main__":

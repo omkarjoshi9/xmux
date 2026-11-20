@@ -9,7 +9,8 @@ from .contracts import AgentTask, PersistedTaskReference
 from .dispatch import DispatchContext, Dispatcher, UnknownDispatch, ApprovedCodingScope
 
 
-def create_app(dispatcher: Dispatcher, service_token: str, *, references=None, approval_verifier=None) -> Callable:
+def create_app(dispatcher: Dispatcher, service_token: str, *, references=None, approval_verifier=None,
+               openbot=None, reserve_openbot=None) -> Callable:
     if not service_token:
         raise ValueError("service_token_required")
 
@@ -73,6 +74,34 @@ def create_app(dispatcher: Dispatcher, service_token: str, *, references=None, a
             scope = approval_verifier(principal, tenant, approval, task) if approval_verifier and approval else None
             if task.intent == "code_change" and scope is None:
                 return respond(start_response, "403 Forbidden", {"error":"approval_required"})
+            if data.get("requested_agent") == "openbot":
+                if openbot is None or reserve_openbot is None:
+                    return respond(start_response, "503 Service Unavailable", {"error": "openbot_not_configured"})
+                eligible = dispatcher.registry.discover_configs(principal, frozenset({"coding"}))
+                if not any(config.agent_id == "openbot" for config in eligible):
+                    return respond(start_response, "403 Forbidden", {"error": "forbidden"})
+                tools = payload.get("allowed_tools")
+                if (scope is None or payload.get("repository") != scope.repository
+                        or payload.get("branch") != scope.branch or not isinstance(tools, list)
+                        or any(not isinstance(tool, str) for tool in tools)
+                        or not set(tools).issubset(scope.allowed_tools)):
+                    return respond(start_response, "403 Forbidden", {"error": "coding_scope_mismatch"})
+                # The injected control-plane store must atomically reserve and
+                # persist the task fingerprint before an external side effect.
+                if not reserve_openbot(task):
+                    return respond(start_response, "409 Conflict", {"error": "dispatch_already_reserved"})
+                try:
+                    delivery = openbot.submit(
+                        tenant_id=tenant, task_id=task.task_id, idempotency_key=task.idempotency_key,
+                        objective=task.objective, repository=scope.repository, branch=scope.branch,
+                        allowed_tools=tuple(tools), authorize=lambda: True,
+                    )
+                except Exception as exc:
+                    raise UnknownDispatch(task.task_id) from exc
+                return respond(start_response, "202 Accepted", {
+                    "delivery_id": delivery.delivery_id, "state": "delivery_accepted",
+                    "execution_state": "unknown", "duplicate": delivery.duplicate,
+                })
             receipt = dispatcher.submit(task, DispatchContext(principal, tenant, scope), data.get("requested_agent"))
             ref = PersistedTaskReference(receipt.agent_id, receipt.remote_task_id, tenant, principal)
             if references is not None:

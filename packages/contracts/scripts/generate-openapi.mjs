@@ -37,9 +37,9 @@ const output =
       openapi: "3.1.1",
       info: {
         title: "XMUX shared contracts (draft)",
-        version: "0.1.0-draft.1",
+        version: "0.1.0-draft.2",
         description:
-          "P0.2 schema catalog only. Pending team agreement. Empty paths are intentional: service operations, authentication bindings and response envelopes are defined in later contract tasks. This document describes no deployed service.",
+          "P0.2–P0.3 schema catalog only. Pending team agreement. Empty paths are intentional: service operations, authentication bindings and HTTP response mappings are defined in later contract tasks. This document describes no deployed service.",
       },
       jsonSchemaDialect: "https://json-schema.org/draft/2020-12/schema",
       paths: {},

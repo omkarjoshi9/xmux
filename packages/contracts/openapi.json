@@ -2,13 +2,108 @@
   "openapi": "3.1.1",
   "info": {
     "title": "XMUX shared contracts (draft)",
-    "version": "0.1.0-draft.1",
-    "description": "P0.2 schema catalog only. Pending team agreement. Empty paths are intentional: service operations, authentication bindings and response envelopes are defined in later contract tasks. This document describes no deployed service."
+    "version": "0.1.0-draft.2",
+    "description": "P0.2–P0.3 schema catalog only. Pending team agreement. Empty paths are intentional: service operations, authentication bindings and HTTP response mappings are defined in later contract tasks. This document describes no deployed service."
   },
   "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
   "paths": {},
   "components": {
     "schemas": {
+      "AgentCapabilities": {
+        "title": "AgentCapabilities",
+        "description": "Capabilities of the installed authorized adapter. Every support flag is explicit; no optimistic defaults. Operations reuse the multiplexer vocabulary.",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1"
+          },
+          "agent_id": {
+            "$ref": "#/components/schemas/Common/$defs/Reference"
+          },
+          "operations": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "\\S"
+            },
+            "minItems": 0,
+            "maxItems": 100,
+            "uniqueItems": true
+          },
+          "supports_status": {
+            "type": "boolean"
+          },
+          "supports_cancel": {
+            "type": "boolean"
+          },
+          "supports_schedule": {
+            "type": "boolean"
+          },
+          "supports_memory_lookup": {
+            "type": "boolean"
+          },
+          "supports_callbacks": {
+            "type": "boolean"
+          },
+          "supports_correlation_lookup": {
+            "type": "boolean"
+          },
+          "dispatch_idempotency": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "supported": {
+                    "const": false
+                  }
+                },
+                "required": [
+                  "supported"
+                ]
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "supported": {
+                    "const": true
+                  },
+                  "scope": {
+                    "const": "principal_agent_operation"
+                  },
+                  "retention_seconds": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 31536000
+                  }
+                },
+                "required": [
+                  "supported",
+                  "scope",
+                  "retention_seconds"
+                ]
+              }
+            ]
+          }
+        },
+        "required": [
+          "schema_version",
+          "agent_id",
+          "operations",
+          "supports_status",
+          "supports_cancel",
+          "supports_schedule",
+          "supports_memory_lookup",
+          "supports_callbacks",
+          "supports_correlation_lookup",
+          "dispatch_idempotency"
+        ]
+      },
       "ApprovalRequest": {
         "title": "ApprovalRequest",
         "type": "object",
@@ -49,6 +144,178 @@
           "decision",
           "action_fingerprint",
           "idempotency_key"
+        ]
+      },
+      "CancellationReceipt": {
+        "title": "CancellationReceipt",
+        "description": "REQUESTED is an acknowledgement, not evidence of cancellation. Only CONFIRMED or a verified terminal observation can support a terminal transition.",
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "schema_version": {
+                "type": "string",
+                "const": "1"
+              },
+              "cancellation_id": {
+                "$ref": "#/components/schemas/Common/$defs/Uuid"
+              },
+              "remote_ref": {
+                "$ref": "#/components/schemas/RemoteTaskRef"
+              },
+              "observed_at": {
+                "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+              },
+              "outcome": {
+                "const": "REQUESTED"
+              }
+            },
+            "required": [
+              "schema_version",
+              "cancellation_id",
+              "remote_ref",
+              "observed_at",
+              "outcome"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "schema_version": {
+                "type": "string",
+                "const": "1"
+              },
+              "cancellation_id": {
+                "$ref": "#/components/schemas/Common/$defs/Uuid"
+              },
+              "remote_ref": {
+                "$ref": "#/components/schemas/RemoteTaskRef"
+              },
+              "observed_at": {
+                "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+              },
+              "outcome": {
+                "const": "CONFIRMED"
+              },
+              "confirmed_at": {
+                "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+              }
+            },
+            "required": [
+              "schema_version",
+              "cancellation_id",
+              "remote_ref",
+              "observed_at",
+              "outcome",
+              "confirmed_at"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "schema_version": {
+                "type": "string",
+                "const": "1"
+              },
+              "cancellation_id": {
+                "$ref": "#/components/schemas/Common/$defs/Uuid"
+              },
+              "remote_ref": {
+                "$ref": "#/components/schemas/RemoteTaskRef"
+              },
+              "observed_at": {
+                "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+              },
+              "outcome": {
+                "const": "UNSUPPORTED"
+              },
+              "error": {
+                "$ref": "#/components/schemas/ErrorEnvelope"
+              }
+            },
+            "required": [
+              "schema_version",
+              "cancellation_id",
+              "remote_ref",
+              "observed_at",
+              "outcome",
+              "error"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "schema_version": {
+                "type": "string",
+                "const": "1"
+              },
+              "cancellation_id": {
+                "$ref": "#/components/schemas/Common/$defs/Uuid"
+              },
+              "remote_ref": {
+                "$ref": "#/components/schemas/RemoteTaskRef"
+              },
+              "observed_at": {
+                "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+              },
+              "outcome": {
+                "const": "UNKNOWN"
+              },
+              "error": {
+                "$ref": "#/components/schemas/ErrorEnvelope"
+              }
+            },
+            "required": [
+              "schema_version",
+              "cancellation_id",
+              "remote_ref",
+              "observed_at",
+              "outcome",
+              "error"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "schema_version": {
+                "type": "string",
+                "const": "1"
+              },
+              "cancellation_id": {
+                "$ref": "#/components/schemas/Common/$defs/Uuid"
+              },
+              "remote_ref": {
+                "$ref": "#/components/schemas/RemoteTaskRef"
+              },
+              "observed_at": {
+                "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+              },
+              "outcome": {
+                "const": "ALREADY_TERMINAL"
+              },
+              "terminal_status": {
+                "type": "string",
+                "enum": [
+                  "SUCCEEDED",
+                  "FAILED",
+                  "CANCELLED"
+                ]
+              }
+            },
+            "required": [
+              "schema_version",
+              "cancellation_id",
+              "remote_ref",
+              "observed_at",
+              "outcome",
+              "terminal_status"
+            ]
+          }
         ]
       },
       "Common": {
@@ -194,6 +461,50 @@
           "artifacts"
         ]
       },
+      "ErrorEnvelope": {
+        "title": "ErrorEnvelope",
+        "description": "Draft normalized error. Message must be sanitized. Neither code nor retry_after_seconds grants permission to retry a side effect.",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1"
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{0,127}$"
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048,
+            "pattern": "\\S"
+          },
+          "correlation_id": {
+            "$ref": "#/components/schemas/Common/$defs/Uuid"
+          },
+          "retry_after_seconds": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 86400
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "schema_version",
+          "code",
+          "message",
+          "correlation_id",
+          "retry_after_seconds"
+        ]
+      },
       "EventEnvelope": {
         "title": "EventEnvelope",
         "type": "object",
@@ -286,6 +597,272 @@
           "auth_context"
         ]
       },
+      "ReconciliationOutcome": {
+        "title": "ReconciliationOutcome",
+        "description": "Dispatch lookup outcome. ABSENT requires authoritative evidence; an ordinary empty lookup, outage or unsupported lookup is UNKNOWN/UNSUPPORTED. No outcome alone authorizes redispatch.",
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "schema_version": {
+                "type": "string",
+                "const": "1"
+              },
+              "task_id": {
+                "$ref": "#/components/schemas/Common/$defs/Uuid"
+              },
+              "agent_id": {
+                "$ref": "#/components/schemas/Common/$defs/Reference"
+              },
+              "correlation_id": {
+                "$ref": "#/components/schemas/Common/$defs/Uuid"
+              },
+              "checked_at": {
+                "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+              },
+              "outcome": {
+                "const": "FOUND"
+              },
+              "remote_ref": {
+                "$ref": "#/components/schemas/RemoteTaskRef"
+              }
+            },
+            "required": [
+              "schema_version",
+              "task_id",
+              "agent_id",
+              "correlation_id",
+              "checked_at",
+              "outcome",
+              "remote_ref"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "schema_version": {
+                "type": "string",
+                "const": "1"
+              },
+              "task_id": {
+                "$ref": "#/components/schemas/Common/$defs/Uuid"
+              },
+              "agent_id": {
+                "$ref": "#/components/schemas/Common/$defs/Reference"
+              },
+              "correlation_id": {
+                "$ref": "#/components/schemas/Common/$defs/Uuid"
+              },
+              "checked_at": {
+                "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+              },
+              "outcome": {
+                "const": "ABSENT"
+              },
+              "evidence": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "authoritative": {
+                    "const": true
+                  },
+                  "evidence_ref": {
+                    "$ref": "#/components/schemas/Common/$defs/Reference"
+                  },
+                  "covers_dispatch_started_at": {
+                    "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+                  }
+                },
+                "required": [
+                  "authoritative",
+                  "evidence_ref",
+                  "covers_dispatch_started_at"
+                ]
+              }
+            },
+            "required": [
+              "schema_version",
+              "task_id",
+              "agent_id",
+              "correlation_id",
+              "checked_at",
+              "outcome",
+              "evidence"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "schema_version": {
+                "type": "string",
+                "const": "1"
+              },
+              "task_id": {
+                "$ref": "#/components/schemas/Common/$defs/Uuid"
+              },
+              "agent_id": {
+                "$ref": "#/components/schemas/Common/$defs/Reference"
+              },
+              "correlation_id": {
+                "$ref": "#/components/schemas/Common/$defs/Uuid"
+              },
+              "checked_at": {
+                "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+              },
+              "outcome": {
+                "const": "UNKNOWN"
+              },
+              "error": {
+                "$ref": "#/components/schemas/ErrorEnvelope"
+              }
+            },
+            "required": [
+              "schema_version",
+              "task_id",
+              "agent_id",
+              "correlation_id",
+              "checked_at",
+              "outcome",
+              "error"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "schema_version": {
+                "type": "string",
+                "const": "1"
+              },
+              "task_id": {
+                "$ref": "#/components/schemas/Common/$defs/Uuid"
+              },
+              "agent_id": {
+                "$ref": "#/components/schemas/Common/$defs/Reference"
+              },
+              "correlation_id": {
+                "$ref": "#/components/schemas/Common/$defs/Uuid"
+              },
+              "checked_at": {
+                "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+              },
+              "outcome": {
+                "const": "UNSUPPORTED"
+              },
+              "error": {
+                "$ref": "#/components/schemas/ErrorEnvelope"
+              }
+            },
+            "required": [
+              "schema_version",
+              "task_id",
+              "agent_id",
+              "correlation_id",
+              "checked_at",
+              "outcome",
+              "error"
+            ]
+          }
+        ]
+      },
+      "RemoteResult": {
+        "title": "RemoteResult",
+        "description": "Terminal remote observation. A result is accepted only after owner, correlation, authorization and transition checks.",
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "schema_version": {
+                "type": "string",
+                "const": "1"
+              },
+              "remote_ref": {
+                "$ref": "#/components/schemas/RemoteTaskRef"
+              },
+              "finished_at": {
+                "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+              },
+              "status": {
+                "const": "SUCCEEDED"
+              },
+              "result_refs": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Common/$defs/Reference"
+                },
+                "minItems": 1,
+                "maxItems": 100,
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "schema_version",
+              "remote_ref",
+              "finished_at",
+              "status",
+              "result_refs"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "schema_version": {
+                "type": "string",
+                "const": "1"
+              },
+              "remote_ref": {
+                "$ref": "#/components/schemas/RemoteTaskRef"
+              },
+              "finished_at": {
+                "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+              },
+              "status": {
+                "const": "FAILED"
+              },
+              "error": {
+                "$ref": "#/components/schemas/ErrorEnvelope"
+              }
+            },
+            "required": [
+              "schema_version",
+              "remote_ref",
+              "finished_at",
+              "status",
+              "error"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "schema_version": {
+                "type": "string",
+                "const": "1"
+              },
+              "remote_ref": {
+                "$ref": "#/components/schemas/RemoteTaskRef"
+              },
+              "finished_at": {
+                "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+              },
+              "status": {
+                "const": "CANCELLED"
+              }
+            },
+            "required": [
+              "schema_version",
+              "remote_ref",
+              "finished_at",
+              "status"
+            ]
+          }
+        ]
+      },
       "RemoteTaskRef": {
         "title": "RemoteTaskRef",
         "type": "object",
@@ -369,6 +946,104 @@
           "state",
           "created_at",
           "last_verified_at"
+        ]
+      },
+      "TaskCallback": {
+        "title": "TaskCallback",
+        "description": "Authenticated remote observation envelope. Callback UUID is a deduplication key. Sequence is per remote job when available, otherwise null; timestamps alone do not prove ordering.",
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "schema_version": {
+                "type": "string",
+                "const": "1"
+              },
+              "callback_id": {
+                "$ref": "#/components/schemas/Common/$defs/Uuid"
+              },
+              "emitted_at": {
+                "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+              },
+              "sequence": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "kind": {
+                "const": "status"
+              },
+              "remote_ref": {
+                "$ref": "#/components/schemas/RemoteTaskRef"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "RUNNING",
+                  "UNKNOWN"
+                ]
+              }
+            },
+            "required": [
+              "schema_version",
+              "callback_id",
+              "emitted_at",
+              "sequence",
+              "kind",
+              "remote_ref",
+              "status"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "schema_version": {
+                "type": "string",
+                "const": "1"
+              },
+              "callback_id": {
+                "$ref": "#/components/schemas/Common/$defs/Uuid"
+              },
+              "emitted_at": {
+                "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+              },
+              "sequence": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "kind": {
+                "const": "result"
+              },
+              "result": {
+                "$ref": "#/components/schemas/RemoteResult"
+              }
+            },
+            "required": [
+              "schema_version",
+              "callback_id",
+              "emitted_at",
+              "sequence",
+              "kind",
+              "result"
+            ]
+          }
         ]
       },
       "TaskRequest": {

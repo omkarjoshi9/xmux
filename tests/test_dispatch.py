@@ -1,6 +1,6 @@
 import unittest
 
-from xmux_multiplexer.contracts import AgentTask, PersistedTaskReference
+from xmux_multiplexer.contracts import AgentCapabilities, AgentState, AgentTask, PersistedTaskReference
 from xmux_multiplexer.dispatch import ApprovedCodingScope, DispatchContext, Dispatcher, UnknownDispatch
 from xmux_multiplexer.mock import MockAgent
 from xmux_multiplexer.registry import AgentConfig, AgentRegistry
@@ -58,11 +58,11 @@ class DispatchTests(unittest.TestCase):
     def test_persisted_reference_resolves_after_dispatcher_restart(self):
         reference = PersistedTaskReference("agent", "remote", "team", "alice")
         restarted = Dispatcher(self.dispatcher.registry, {"agent": self.agent})
-        self.agent.status = lambda remote: __import__("xmux_multiplexer.contracts", fromlist=["AgentState"]).AgentState.COMPLETED
+        self.agent.status = lambda remote: AgentState.COMPLETED
         self.assertEqual(restarted.status(reference, self.context).value, "completed")
 
     def test_status_unsupported_is_explicit(self):
-        self.agent.capabilities = lambda: __import__("xmux_multiplexer.contracts", fromlist=["AgentCapabilities"]).AgentCapabilities(frozenset({"research"}), supports_status=False)
+        self.agent.capabilities = lambda: AgentCapabilities(frozenset({"research"}), supports_status=False)
         ref = PersistedTaskReference("agent", "remote", "team", "alice")
         with self.assertRaisesRegex(NotImplementedError, "status_unsupported"):
             self.dispatcher.status(ref, self.context)

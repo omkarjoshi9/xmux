@@ -137,4 +137,3 @@ class T3Agent:
 
     def result(self, remote_ref: str):
         return self._bridge.result(*self._reference(remote_ref))
-

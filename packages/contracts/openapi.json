@@ -2,8 +2,8 @@
   "openapi": "3.1.1",
   "info": {
     "title": "XMUX shared contracts (draft)",
-    "version": "0.1.0-draft.3",
-    "description": "P0.2–P0.4 draft schema and HTTP convention catalog. Empty paths are intentional: service operations and authentication bindings remain future work. This document describes no deployed service."
+    "version": "0.1.0-draft.4",
+    "description": "P0.2–P0.5 draft schema, HTTP and authorization convention catalog. Empty paths are intentional: service operations and authentication bindings remain future work. This document describes no deployed service."
   },
   "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
   "paths": {},
@@ -590,6 +590,159 @@
           "idempotency_key"
         ]
       },
+      "AuthenticatedActor": {
+        "title": "AuthenticatedActor",
+        "description": "Internal validator output; never a public request body or proof by itself. Construct after credential verification and registry lookup.",
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "schema_version": {
+                "type": "string",
+                "const": "1"
+              },
+              "audience": {
+                "$ref": "#/components/schemas/Common/$defs/Reference"
+              },
+              "authenticated_at": {
+                "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+              },
+              "expires_at": {
+                "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+              },
+              "actor_type": {
+                "const": "USER"
+              },
+              "subject_ref": {
+                "$ref": "#/components/schemas/Common/$defs/Reference"
+              },
+              "principal_id": {
+                "$ref": "#/components/schemas/Common/$defs/Uuid"
+              },
+              "tenant_id": {
+                "$ref": "#/components/schemas/Common/$defs/Uuid"
+              },
+              "scopes": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "tasks:create",
+                    "tasks:read",
+                    "tasks:cancel",
+                    "agents:read",
+                    "approvals:decide",
+                    "routines:create",
+                    "routines:read",
+                    "references:read"
+                  ]
+                },
+                "uniqueItems": true,
+                "maxItems": 100
+              }
+            },
+            "required": [
+              "schema_version",
+              "audience",
+              "authenticated_at",
+              "expires_at",
+              "actor_type",
+              "subject_ref",
+              "principal_id",
+              "tenant_id",
+              "scopes"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "schema_version": {
+                "type": "string",
+                "const": "1"
+              },
+              "audience": {
+                "$ref": "#/components/schemas/Common/$defs/Reference"
+              },
+              "authenticated_at": {
+                "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+              },
+              "expires_at": {
+                "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+              },
+              "actor_type": {
+                "const": "SERVICE"
+              },
+              "service_id": {
+                "$ref": "#/components/schemas/Common/$defs/Reference"
+              },
+              "service_role": {
+                "type": "string",
+                "enum": [
+                  "gateway",
+                  "orchestrator",
+                  "multiplexer"
+                ]
+              },
+              "allowed_tenant_ids": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Common/$defs/Uuid"
+                },
+                "uniqueItems": true,
+                "maxItems": 100
+              },
+              "scopes": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "events:ingest",
+                    "tasks:create",
+                    "tasks:dispatch",
+                    "tasks:observe",
+                    "deliveries:submit",
+                    "agents:read"
+                  ]
+                },
+                "uniqueItems": true,
+                "maxItems": 100
+              }
+            },
+            "required": [
+              "schema_version",
+              "audience",
+              "authenticated_at",
+              "expires_at",
+              "actor_type",
+              "service_id",
+              "service_role",
+              "allowed_tenant_ids",
+              "scopes"
+            ]
+          }
+        ]
+      },
+      "AuthorizationScope": {
+        "title": "AuthorizationScope",
+        "description": "Closed draft operation grants. A listed scope is necessary but never sufficient for ownership, approval or delegation.",
+        "type": "string",
+        "enum": [
+          "agents:read",
+          "approvals:decide",
+          "deliveries:submit",
+          "events:ingest",
+          "references:read",
+          "routines:create",
+          "routines:read",
+          "tasks:cancel",
+          "tasks:create",
+          "tasks:dispatch",
+          "tasks:observe",
+          "tasks:read"
+        ]
+      },
       "CancellationReceipt": {
         "title": "CancellationReceipt",
         "description": "REQUESTED is an acknowledgement, not evidence of cancellation. Only CONFIRMED or a verified terminal observation can support a terminal transition.",
@@ -863,6 +1016,81 @@
             "description": "Opaque URL-safe authenticated pagination cursor. Syntax validation does not prove validity or authorization."
           }
         }
+      },
+      "DelegationContext": {
+        "title": "DelegationContext",
+        "description": "Internal bounded dispatch grant issued from authorized persisted task state. Verify signature/introspection and actor/task binding before use; never trust a client-supplied copy.",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1"
+          },
+          "grant_id": {
+            "$ref": "#/components/schemas/Common/$defs/Uuid"
+          },
+          "actor_service_id": {
+            "$ref": "#/components/schemas/Common/$defs/Reference"
+          },
+          "audience": {
+            "$ref": "#/components/schemas/Common/$defs/Reference"
+          },
+          "principal_id": {
+            "$ref": "#/components/schemas/Common/$defs/Uuid"
+          },
+          "tenant_id": {
+            "$ref": "#/components/schemas/Common/$defs/Uuid"
+          },
+          "task_id": {
+            "$ref": "#/components/schemas/Common/$defs/Uuid"
+          },
+          "task_version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "agent_id": {
+            "$ref": "#/components/schemas/Common/$defs/Reference"
+          },
+          "scope": {
+            "const": "tasks:dispatch"
+          },
+          "action_fingerprint": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "approval_refs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Common/$defs/Uuid"
+            },
+            "uniqueItems": true,
+            "maxItems": 100
+          },
+          "issued_at": {
+            "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+          },
+          "expires_at": {
+            "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+          }
+        },
+        "required": [
+          "schema_version",
+          "grant_id",
+          "actor_service_id",
+          "audience",
+          "principal_id",
+          "tenant_id",
+          "task_id",
+          "task_version",
+          "agent_id",
+          "scope",
+          "action_fingerprint",
+          "approval_refs",
+          "issued_at",
+          "expires_at"
+        ]
       },
       "DeliveryRequest": {
         "title": "DeliveryRequest",
@@ -1148,6 +1376,106 @@
         "required": [
           "path",
           "reason"
+        ]
+      },
+      "IdentityMapping": {
+        "title": "IdentityMapping",
+        "description": "Server-owned identity-link record. ACTIVE requires explicit verified linking; existence or schema validity does not authorize a caller.",
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "schema_version": {
+                "type": "string",
+                "const": "1"
+              },
+              "identity_mapping_ref": {
+                "$ref": "#/components/schemas/Common/$defs/Reference"
+              },
+              "gateway_service_id": {
+                "$ref": "#/components/schemas/Common/$defs/Reference"
+              },
+              "platform": {
+                "$ref": "#/components/schemas/Common/$defs/Reference"
+              },
+              "actor_external_id": {
+                "$ref": "#/components/schemas/Common/$defs/Reference"
+              },
+              "principal_id": {
+                "$ref": "#/components/schemas/Common/$defs/Uuid"
+              },
+              "tenant_id": {
+                "$ref": "#/components/schemas/Common/$defs/Uuid"
+              },
+              "verified_at": {
+                "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+              },
+              "state": {
+                "const": "ACTIVE"
+              }
+            },
+            "required": [
+              "schema_version",
+              "identity_mapping_ref",
+              "gateway_service_id",
+              "platform",
+              "actor_external_id",
+              "principal_id",
+              "tenant_id",
+              "verified_at",
+              "state"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "schema_version": {
+                "type": "string",
+                "const": "1"
+              },
+              "identity_mapping_ref": {
+                "$ref": "#/components/schemas/Common/$defs/Reference"
+              },
+              "gateway_service_id": {
+                "$ref": "#/components/schemas/Common/$defs/Reference"
+              },
+              "platform": {
+                "$ref": "#/components/schemas/Common/$defs/Reference"
+              },
+              "actor_external_id": {
+                "$ref": "#/components/schemas/Common/$defs/Reference"
+              },
+              "principal_id": {
+                "$ref": "#/components/schemas/Common/$defs/Uuid"
+              },
+              "tenant_id": {
+                "$ref": "#/components/schemas/Common/$defs/Uuid"
+              },
+              "verified_at": {
+                "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+              },
+              "state": {
+                "const": "REVOKED"
+              },
+              "revoked_at": {
+                "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+              }
+            },
+            "required": [
+              "schema_version",
+              "identity_mapping_ref",
+              "gateway_service_id",
+              "platform",
+              "actor_external_id",
+              "principal_id",
+              "tenant_id",
+              "verified_at",
+              "state",
+              "revoked_at"
+            ]
+          }
         ]
       },
       "ReconciliationOutcome": {

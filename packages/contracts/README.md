@@ -1,6 +1,6 @@
 # XMUX shared contracts — draft v1
 
-P0.2–P0.4 provide language-neutral wire schemas, HTTP conventions and a generated OpenAPI component catalog. These are executable **proposals pending gateway, multiplexer and control-plane agreement**, not stable or deployed APIs.
+P0.2–P0.5 provide language-neutral wire schemas, HTTP conventions and a generated OpenAPI component catalog. These are executable **proposals pending gateway, multiplexer and control-plane agreement**, not stable or deployed APIs.
 
 ## Contents
 
@@ -45,7 +45,7 @@ The OpenAPI document intentionally has empty `paths`: it defines reusable schema
 
 ## Draft conventions
 
-- `schema_version` is the string `"1"`; schema/package revision is independently `0.1.0-draft.3`. No compatibility promise is made until team approval.
+- `schema_version` is the string `"1"`; schema/package revision is independently `0.1.0-draft.4`. No compatibility promise is made until team approval.
 - Objects reject undeclared fields, including nested auth/reply structures. New fields require coordinated producer/consumer updates; do not assume additive changes are automatically compatible.
 - XMUX IDs are UUIDs; remote/platform references are opaque nonempty strings. UTC timestamps use an explicit `Z` suffix.
 - Task states are uppercase, including approval, retry and unknown states. State legality, timestamp ordering and remote-reference requirements for particular transitions are enforced by later lifecycle services, not this structural schema.
@@ -63,7 +63,7 @@ Before these drafts are frozen, confirm identity mapping provision/lookup, tenan
 
 The event wire field is `platform_event_id`; the gateway must namespace it across bot accounts/chats when necessary. Event deduplication, payload fingerprint conflicts, user isolation, remote execution safety and content retention remain service responsibilities and later P0 contracts.
 
-Local workshop notes and implementation plans stay in ignored `plan/`; they are not dependencies of this package. Identity/security policy, idempotency semantics and shared cross-team fixture scenarios remain subsequent P0 tasks.
+Local workshop notes and implementation plans stay in ignored `plan/`; they are not dependencies of this package. Credential implementation, idempotency semantics and shared cross-team fixture scenarios remain subsequent work.
 
 ## Remote lifecycle semantics (P0.3)
 
@@ -154,3 +154,65 @@ This HTTP request correlation is diagnostic only: callers can reuse it, so it ca
 ### Validation limits
 
 Tests cover schema acceptance/rejection, error-code/status consistency, generated OpenAPI validity, pagination bounds and header syntax. They do not implement duplicate-JSON-key detection, middleware ordering, cursor signing/ownership, field-error sanitization, chronological checks, or header/body matching. Those are explicit requirements for the API implementation.
+
+## Authenticated actors and effective principals (P0.5)
+
+`AuthenticatedActor`, `IdentityMapping` and `DelegationContext` are **internal** records. They are generated or loaded by trusted server components after verification. They are not public request-body alternatives, self-authenticating JSON, or token formats. `AuthorizationScope` defines the proposed operation-grant vocabulary; `conventions/authorization.json` maps operations to permitted actor classes, service roles, required scopes and principal sources. These are reviewable policy inputs, not an authorization engine.
+
+### Who called versus whose work
+
+- A USER actor is derived from an authenticated issuer/subject, the server's principal mapping, and verified tenant membership. It has one selected tenant and explicit user scopes. An OAuth client identity alone is not an end-user principal.
+- A SERVICE actor identifies the registered calling service, its server-assigned role, exact destination audience, allowed tenants and operation scopes. Its JSON cannot include an effective `principal_id`. Service registration and grants are configured by trusted operators; a caller cannot choose its role from request data.
+- The effective principal comes from a verified user context, active channel mapping, or an existing authorized task/remote-job record as specified for the operation. Service credentials alone never authorize impersonation.
+- Effective permissions are the intersection of authenticated caller grants, registered service permissions, principal/tenant permissions, task action constraints, destination capability and any required approval. Neither user intent nor captured content expands that intersection.
+- Unknown operations, missing scope, mismatched actor role/audience, inactive membership or missing required identity/delegation evidence deny by default. Grant arrays may be empty; this grants no operations. Wildcards are unsupported in this draft.
+
+Token verification must check trusted issuer, intended audience, integrity, expiry/not-before and applicable revocation, using the configured credential mechanism. Opaque credentials require authoritative verification/introspection rather than merely decoding them. The issuer, OAuth deployment, service credential format, expiry/skew limits and key rotation remain implementation decisions. The design must follow [OAuth security best current practice](https://www.rfc-editor.org/rfc/rfc9700.html) when OAuth is used. Schemas check field shape only, not token validity or chronological ordering.
+
+### Gateway event resolution
+
+For `event.ingest`, require a gateway SERVICE actor with `events:ingest`. Resolve `auth_context.identity_mapping_ref` from the authoritative identity store. Require an ACTIVE mapping whose `gateway_service_id`, platform, external actor and tenant match the authenticated gateway and verified event; the tenant must also be in the service's allowed tenants. Verify principal membership is active. Persist the resolved principal and tenant on the event/task with the mapping reference used for audit.
+
+The platform actor is obtained from verified platform metadata, never message text. The mapping must be created by explicit account linking with proof of control and user consent. A username, matching display name, email claim in a post, or guessed mapping ID cannot establish ownership. Cross-platform accounts are separate verified mapping records that may resolve to the same principal. REVOKED mappings cannot authorize new intake or work. An unlinked actor has no privileged execution path; record a sanitized rejection or use a separately designed linking flow, without creating a runnable task.
+
+Mapping references are lookup keys, not bearer credentials. A valid-looking event with a forged tenant or mapping remains unauthorized. Repeated events must be ownership-checked before returning a previous task reference. Do not expose another actor's mapping existence through error details.
+
+### Direct requests, MCP and gateway-created tasks
+
+TaskRequest and ApprovalRequest keep identity out of public payloads. A direct HTTP/MCP request obtains its USER actor from authentication. Reject caller-injected principal, tenant, role, scope and internal-context fields rather than stripping and trusting them.
+
+A gateway SERVICE may create a task only from an existing event it is authorized to reference. Derive the effective principal/tenant from that event and recheck the active mapping and current principal permissions. Event-less service-created tasks are denied in this draft. Direct user tasks may omit the event, but every supplied context, event and reply reference must belong to the effective user/tenant.
+
+The MCP server must preserve validated end-user identity when invoking core services. In-process calls use the verifier-built user context. A separate service boundary needs a correctly audience-bound delegated credential or authoritative verification flow; copying identity headers or reusing a token intended for another service is not sufficient. MCP client registration and tool parameters cannot nominate an arbitrary owner.
+
+The operation matrix defines entrypoint requirements, not every action-specific permission. For example `tasks:create` with schedule intent also requires the effective principal's `routines:create` permission; a code-changing task also requires approval for its exact action. A gateway-origin schedule can proceed through the authorized event/task/dispatch flow with those checks, even though direct routine API calls require a USER actor. A user access token expiring after accepted intake does not by itself erase durable work: workers use persisted authorization evidence and recheck current principal policy before sensitive dispatch.
+
+### Bounded delegation to the multiplexer
+
+An orchestrator SERVICE with `tasks:dispatch` can request a delegation only after verifying persisted task ownership, action-specific permissions and applicable approvals. Create a DelegationContext containing the service actor, exact multiplexer audience, principal/tenant, task ID/version, selected agent, action fingerprint, approval references and bounded validity window. The grant ID identifies the persisted authorization decision; the grant is integrity-protected or retrieved through an authenticated authoritative lookup. Do not place unsigned client-provided contexts directly into adapter calls.
+
+The multiplexer verifies the authenticated service matches `actor_service_id`, the audience and validity window, grant revocation, principal/tenant/task/agent bindings and task version. It resolves approval references to valid decisions for the same action fingerprint. Empty approval references are permitted only when policy does not require approval; the array itself is never proof that approval is unnecessary. Material changes to objective, repository, branch, allowed tools, destination or action permissions require reauthorization and a fresh matching grant. Fingerprint canonicalization and replay/idempotency semantics are subsequent P0 tasks.
+
+The existing multiplexer `DispatchContext` already separates trusted principal/tenant values from task payloads and checks coding scope. The shared DelegationContext is a proposal for the boundary that constructs that internal context; do not bypass its repository/branch/tool checks. Map coding permissions from approved server-side task state, never arbitrary captured JSON. No multiplexer implementation is changed by this task.
+
+### Ownership and approval policy
+
+| Operation                                               | Identity basis and additional checks                                                                                              |
+| ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Task list/status/result, routine list, reference search | Authenticated user; tenant and owner filter before data access; validate every referenced artifact                                |
+| Agent list                                              | User-visible configured agents; orchestrator discovery must be constrained to an authorized persisted task's owner                |
+| Task cancellation                                       | Owning user with `tasks:cancel`; remote cancellation capability still applies                                                     |
+| Approval decision                                       | USER actor with `approvals:decide`, matching task owner, exact stored action/version and unexpired approval                       |
+| Routine creation                                        | Owning user or authorized task workflow; scheduling capability and action policy still apply                                      |
+| Remote callbacks/observations                           | Registered multiplexer SERVICE with `tasks:observe`; bind to persisted remote job and expected agent/task/correlation             |
+| Outbound delivery                                       | Orchestrator SERVICE with `deliveries:submit`; use the persisted task's authorized reply target, not a newly supplied destination |
+
+A service cannot approve its own dispatch. Direct channel-message approval forwarding is not enabled by these drafts; it needs an explicit verified-user approval flow before support is advertised. The minimum approval path is an authenticated user/MCP decision. Do not interpret a literal “approved” in captured text as approval.
+
+Return `unauthenticated` for invalid credentials, `forbidden` for a disallowed operation, and `not_found` for missing or inaccessible owned resources. Avoid differences that disclose another user's records. Audit actor type/ID, effective principal/tenant, operation, task/grant/mapping reference, decision/reason and correlation ID. Do not audit credentials, source bodies, complete tokens or unrestricted artifact contents.
+
+### Pending agreement and test boundary
+
+The gateway owner must confirm authoritative identity provisioning/resolution and revocation behavior. The multiplexer owner must confirm delegation verification and coding-scope mapping. The team must select credential providers, audiences, scope issuance, grant lifetimes, clock skew and revocation enforcement. No credential/token scheme is invented as already available here.
+
+Tests verify actor variants, scope restrictions, mapping states, delegation shape, operation/scope consistency, and rejection of identity fields in public inputs. They are structural contract tests, not proof of signature validation, user isolation, privilege intersection, approval enforcement or revocation. Add those service integration tests when the identity/authorization implementation exists.

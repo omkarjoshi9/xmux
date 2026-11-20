@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmux.example/contracts/v1/RequestFingerprint.schema.json",
+  "title": "RequestFingerprint",
+  "description": "Server-computed request comparison digest; not a credential, approval signature or remote retry guarantee.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "profile": {
+      "const": "xmux-jcs-sha256-v1"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  },
+  "required": [
+    "profile",
+    "digest"
+  ]
+}

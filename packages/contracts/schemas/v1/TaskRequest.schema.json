@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmux.example/contracts/v1/TaskRequest.schema.json",
+  "title": "TaskRequest",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1"
+    },
+    "idempotency_key": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "pattern": "\\S"
+    },
+    "source_event_id": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+    },
+    "intent": {
+      "type": "string",
+      "enum": [
+        "summarize",
+        "save_reference",
+        "delegate",
+        "research",
+        "schedule",
+        "workflow"
+      ]
+    },
+    "requested_agent": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+    },
+    "objective": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 16384,
+      "pattern": "\\S"
+    },
+    "context_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+      },
+      "maxItems": 100
+    },
+    "reply_target_ref": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+    }
+  },
+  "required": [
+    "schema_version",
+    "idempotency_key",
+    "intent",
+    "objective",
+    "context_refs"
+  ]
+}

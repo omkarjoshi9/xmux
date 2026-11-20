@@ -1,0 +1,185 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmux.example/contracts/v1/ReconciliationOutcome.schema.json",
+  "title": "ReconciliationOutcome",
+  "description": "Dispatch lookup outcome. ABSENT requires current authoritative evidence of no prior acceptance and closure of in-flight acceptance. Missing/deleted jobs or eventually consistent empty searches are UNKNOWN, not absence proof.",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1"
+        },
+        "task_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+        },
+        "agent_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+        },
+        "correlation_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+        },
+        "checked_at": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+        },
+        "outcome": {
+          "const": "FOUND"
+        },
+        "remote_ref": {
+          "$ref": "https://xmux.example/contracts/v1/RemoteTaskRef.schema.json"
+        }
+      },
+      "required": [
+        "schema_version",
+        "task_id",
+        "agent_id",
+        "correlation_id",
+        "checked_at",
+        "outcome",
+        "remote_ref"
+      ]
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1"
+        },
+        "task_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+        },
+        "agent_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+        },
+        "correlation_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+        },
+        "checked_at": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+        },
+        "outcome": {
+          "const": "ABSENT"
+        },
+        "evidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "authoritative": {
+              "const": true
+            },
+            "evidence_ref": {
+              "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+            },
+            "covers_dispatch_started_at": {
+              "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+            },
+            "never_accepted": {
+              "const": true
+            },
+            "acceptance_closed": {
+              "const": true
+            },
+            "valid_until": {
+              "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+            }
+          },
+          "required": [
+            "authoritative",
+            "evidence_ref",
+            "covers_dispatch_started_at",
+            "never_accepted",
+            "acceptance_closed",
+            "valid_until"
+          ]
+        }
+      },
+      "required": [
+        "schema_version",
+        "task_id",
+        "agent_id",
+        "correlation_id",
+        "checked_at",
+        "outcome",
+        "evidence"
+      ]
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1"
+        },
+        "task_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+        },
+        "agent_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+        },
+        "correlation_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+        },
+        "checked_at": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+        },
+        "outcome": {
+          "const": "UNKNOWN"
+        },
+        "error": {
+          "$ref": "https://xmux.example/contracts/v1/ErrorEnvelope.schema.json"
+        }
+      },
+      "required": [
+        "schema_version",
+        "task_id",
+        "agent_id",
+        "correlation_id",
+        "checked_at",
+        "outcome",
+        "error"
+      ]
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1"
+        },
+        "task_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+        },
+        "agent_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+        },
+        "correlation_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+        },
+        "checked_at": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+        },
+        "outcome": {
+          "const": "UNSUPPORTED"
+        },
+        "error": {
+          "$ref": "https://xmux.example/contracts/v1/ErrorEnvelope.schema.json"
+        }
+      },
+      "required": [
+        "schema_version",
+        "task_id",
+        "agent_id",
+        "correlation_id",
+        "checked_at",
+        "outcome",
+        "error"
+      ]
+    }
+  ]
+}

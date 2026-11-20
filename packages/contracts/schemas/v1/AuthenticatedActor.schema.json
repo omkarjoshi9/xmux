@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmux.example/contracts/v1/AuthenticatedActor.schema.json",
+  "title": "AuthenticatedActor",
+  "description": "Internal validator output; never a public request body or proof by itself. Construct after credential verification and registry lookup.",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1"
+        },
+        "audience": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+        },
+        "authenticated_at": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+        },
+        "expires_at": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+        },
+        "actor_type": {
+          "const": "USER"
+        },
+        "subject_ref": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+        },
+        "principal_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+        },
+        "tenant_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+        },
+        "scopes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "tasks:create",
+              "tasks:read",
+              "tasks:cancel",
+              "agents:read",
+              "approvals:decide",
+              "routines:create",
+              "routines:read",
+              "references:read"
+            ]
+          },
+          "uniqueItems": true,
+          "maxItems": 100
+        }
+      },
+      "required": [
+        "schema_version",
+        "audience",
+        "authenticated_at",
+        "expires_at",
+        "actor_type",
+        "subject_ref",
+        "principal_id",
+        "tenant_id",
+        "scopes"
+      ]
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1"
+        },
+        "audience": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+        },
+        "authenticated_at": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+        },
+        "expires_at": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+        },
+        "actor_type": {
+          "const": "SERVICE"
+        },
+        "service_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+        },
+        "service_role": {
+          "type": "string",
+          "enum": [
+            "gateway",
+            "orchestrator",
+            "multiplexer"
+          ]
+        },
+        "allowed_tenant_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+          },
+          "uniqueItems": true,
+          "maxItems": 100
+        },
+        "scopes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "events:ingest",
+              "tasks:create",
+              "tasks:dispatch",
+              "tasks:observe",
+              "deliveries:submit",
+              "agents:read"
+            ]
+          },
+          "uniqueItems": true,
+          "maxItems": 100
+        }
+      },
+      "required": [
+        "schema_version",
+        "audience",
+        "authenticated_at",
+        "expires_at",
+        "actor_type",
+        "service_id",
+        "service_role",
+        "allowed_tenant_ids",
+        "scopes"
+      ]
+    }
+  ]
+}

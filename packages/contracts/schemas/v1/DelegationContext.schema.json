@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmux.example/contracts/v1/DelegationContext.schema.json",
+  "title": "DelegationContext",
+  "description": "Internal bounded dispatch grant issued from authorized persisted task state. Verify signature/introspection and actor/task binding before use; never trust a client-supplied copy.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1"
+    },
+    "grant_id": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+    },
+    "actor_service_id": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+    },
+    "audience": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+    },
+    "principal_id": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+    },
+    "tenant_id": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+    },
+    "task_id": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+    },
+    "task_version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "agent_id": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+    },
+    "scope": {
+      "const": "tasks:dispatch"
+    },
+    "action_fingerprint": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "approval_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+      },
+      "uniqueItems": true,
+      "maxItems": 100
+    },
+    "issued_at": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+    },
+    "expires_at": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+    }
+  },
+  "required": [
+    "schema_version",
+    "grant_id",
+    "actor_service_id",
+    "audience",
+    "principal_id",
+    "tenant_id",
+    "task_id",
+    "task_version",
+    "agent_id",
+    "scope",
+    "action_fingerprint",
+    "approval_refs",
+    "issued_at",
+    "expires_at"
+  ]
+}

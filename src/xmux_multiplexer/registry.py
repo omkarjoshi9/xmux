@@ -15,15 +15,21 @@ class AgentConfig:
     principals: frozenset[str]
     credential_ref: str | None = None
     tenants: frozenset[str] = frozenset()
+    transport: str = "http_api"
 
     def __post_init__(self) -> None:
         if not self.agent_id or any(c.isspace() for c in self.agent_id):
             raise ValueError("invalid_agent_id")
-        parsed = urlsplit(self.endpoint)
-        if parsed.scheme not in {"https", "http"} or not parsed.netloc:
+        if self.transport not in {"http_api", "cli", "mcp", "email", "webhook"}:
+            raise ValueError("invalid_transport")
+        if not self.endpoint or not self.endpoint.strip():
             raise ValueError("invalid_endpoint")
-        if parsed.username or parsed.password or parsed.query or parsed.fragment:
-            raise ValueError("endpoint_must_not_contain_credentials_or_query")
+        if self.transport in {"http_api", "webhook"}:
+            parsed = urlsplit(self.endpoint)
+            if parsed.scheme not in {"https", "http"} or not parsed.netloc:
+                raise ValueError("invalid_endpoint")
+            if parsed.username or parsed.password or parsed.query or parsed.fragment:
+                raise ValueError("endpoint_must_not_contain_credentials_or_query")
         if not self.operations or any(not x.strip() for x in self.operations):
             raise ValueError("invalid_operations")
         if not self.principals or any(not x.strip() for x in self.principals):

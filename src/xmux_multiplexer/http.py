@@ -76,6 +76,19 @@ def create_app(dispatcher: Dispatcher, service_token: str, *, references=None, a
             payload = task_data.get("payload", {})
             if not isinstance(caps, list) or any(not isinstance(c, str) for c in caps) or not isinstance(payload, dict):
                 raise ValueError("invalid_task")
+            if schema_validator is None:
+                return respond(start_response, "503 Service Unavailable", {"error": "schema_validator_unavailable"})
+            request_document = {
+                "schema_version": task_data.get("schema_version"),
+                "idempotency_key": task_data["idempotency_key"],
+                "intent": "delegate" if task_data["intent"] == "code_change" else task_data["intent"],
+                "objective": task_data["objective"],
+                "context_refs": task_data.get("context_refs", []),
+            }
+            for field in ("source_event_id", "requested_agent", "reply_target_ref"):
+                if field in task_data:
+                    request_document[field] = task_data[field]
+            schema_validator.validate("TaskRequest", request_document)
             task = AgentTask(task_data["task_id"], task_data["idempotency_key"], principal, tenant,
                              task_data["intent"], task_data["objective"], frozenset(caps), payload)
             # Coding writes require an independently verified approval integration.

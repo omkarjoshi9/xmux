@@ -1,0 +1,519 @@
+{
+  "schema_version": "1",
+  "fixtures": [
+    {
+      "id": "event",
+      "path": "v1/event.json",
+      "schema": "EventEnvelope",
+      "valid": true,
+      "category": "valid"
+    },
+    {
+      "id": "task-request",
+      "path": "v1/task-request.json",
+      "schema": "TaskRequest",
+      "valid": true,
+      "category": "valid"
+    },
+    {
+      "id": "remote-task",
+      "path": "v1/remote-task.json",
+      "schema": "RemoteTaskRef",
+      "valid": true,
+      "category": "valid"
+    },
+    {
+      "id": "task-status",
+      "path": "v1/task-status.json",
+      "schema": "TaskStatus",
+      "valid": true,
+      "category": "valid"
+    },
+    {
+      "id": "delivery-request",
+      "path": "v1/delivery-request.json",
+      "schema": "DeliveryRequest",
+      "valid": true,
+      "category": "valid"
+    },
+    {
+      "id": "approval-request",
+      "path": "v1/approval-request.json",
+      "schema": "ApprovalRequest",
+      "valid": true,
+      "category": "valid"
+    },
+    {
+      "id": "routine",
+      "path": "v1/routine.json",
+      "schema": "RoutineRef",
+      "valid": true,
+      "category": "valid"
+    },
+    {
+      "id": "error",
+      "path": "v1/error.json",
+      "schema": "ErrorEnvelope",
+      "valid": true,
+      "category": "valid"
+    },
+    {
+      "id": "error-code",
+      "path": "v1/error-code.json",
+      "schema": "ErrorCode",
+      "valid": true,
+      "category": "valid"
+    },
+    {
+      "id": "capabilities",
+      "path": "v1/capabilities.json",
+      "schema": "AgentCapabilities",
+      "valid": true,
+      "category": "valid"
+    },
+    {
+      "id": "remote-result",
+      "path": "v1/remote-result.json",
+      "schema": "RemoteResult",
+      "valid": true,
+      "category": "valid"
+    },
+    {
+      "id": "callback",
+      "path": "v1/callback.json",
+      "schema": "TaskCallback",
+      "valid": true,
+      "category": "valid"
+    },
+    {
+      "id": "cancellation",
+      "path": "v1/cancellation.json",
+      "schema": "CancellationReceipt",
+      "valid": true,
+      "category": "valid"
+    },
+    {
+      "id": "reconciliation",
+      "path": "v1/reconciliation.json",
+      "schema": "ReconciliationOutcome",
+      "valid": true,
+      "category": "valid"
+    },
+    {
+      "id": "field-violation",
+      "path": "v1/field-violation.json",
+      "schema": "FieldViolation",
+      "valid": true,
+      "category": "valid"
+    },
+    {
+      "id": "task-list-query",
+      "path": "v1/task-list-query.json",
+      "schema": "TaskListQuery",
+      "valid": true,
+      "category": "valid"
+    },
+    {
+      "id": "task-page",
+      "path": "v1/task-page.json",
+      "schema": "TaskPage",
+      "valid": true,
+      "category": "valid"
+    },
+    {
+      "id": "actor",
+      "path": "v1/actor.json",
+      "schema": "AuthenticatedActor",
+      "valid": true,
+      "category": "valid"
+    },
+    {
+      "id": "authorization-scope",
+      "path": "v1/authorization-scope.json",
+      "schema": "AuthorizationScope",
+      "valid": true,
+      "category": "valid"
+    },
+    {
+      "id": "identity-mapping",
+      "path": "v1/identity-mapping.json",
+      "schema": "IdentityMapping",
+      "valid": true,
+      "category": "valid"
+    },
+    {
+      "id": "delegation",
+      "path": "v1/delegation.json",
+      "schema": "DelegationContext",
+      "valid": true,
+      "category": "valid"
+    },
+    {
+      "id": "idempotency-scope",
+      "path": "v1/idempotency-scope.json",
+      "schema": "IdempotencyScope",
+      "valid": true,
+      "category": "valid"
+    },
+    {
+      "id": "request-fingerprint",
+      "path": "v1/request-fingerprint.json",
+      "schema": "RequestFingerprint",
+      "valid": true,
+      "category": "valid"
+    },
+    {
+      "id": "idempotency-record",
+      "path": "v1/idempotency-record.json",
+      "schema": "IdempotencyRecord",
+      "valid": true,
+      "category": "valid"
+    },
+    {
+      "id": "dispatch-attempt",
+      "path": "v1/dispatch-attempt.json",
+      "schema": "DispatchAttempt",
+      "valid": true,
+      "category": "valid"
+    },
+    {
+      "id": "dispatch-outcome",
+      "path": "v1/dispatch-outcome.json",
+      "schema": "DispatchOutcome",
+      "valid": true,
+      "category": "valid"
+    },
+    {
+      "id": "event-receipt",
+      "path": "v1/event-receipt.json",
+      "schema": "EventReceipt",
+      "valid": true,
+      "category": "valid"
+    },
+    {
+      "id": "queued-task",
+      "path": "v1/queued-task.json",
+      "schema": "TaskReceipt",
+      "valid": true,
+      "category": "valid"
+    },
+    {
+      "id": "delivery-receipt",
+      "path": "v1/delivery-receipt.json",
+      "schema": "DeliveryReceipt",
+      "valid": true,
+      "category": "valid"
+    },
+    {
+      "id": "approval-receipt",
+      "path": "v1/approval-receipt.json",
+      "schema": "ApprovalReceipt",
+      "valid": true,
+      "category": "valid"
+    },
+    {
+      "id": "get-result",
+      "path": "v1/get-result.json",
+      "schema": "TaskResult",
+      "valid": true,
+      "category": "valid"
+    },
+    {
+      "id": "agents",
+      "path": "v1/agents.json",
+      "schema": "AgentList",
+      "valid": true,
+      "category": "valid"
+    },
+    {
+      "id": "dispatch-request",
+      "path": "v1/dispatch-request.json",
+      "schema": "DispatchRequest",
+      "valid": true,
+      "category": "valid"
+    },
+    {
+      "id": "missing-objective",
+      "path": "v1/missing-objective.json",
+      "schema": "TaskRequest",
+      "valid": false,
+      "category": "malformed",
+      "expected_validation_keyword": "required"
+    },
+    {
+      "id": "unsupported-version",
+      "path": "v1/unsupported-version.json",
+      "schema": "TaskRequest",
+      "valid": false,
+      "category": "unsupported",
+      "expected_validation_keyword": "const"
+    },
+    {
+      "id": "spoofed-principal",
+      "path": "v1/spoofed-principal.json",
+      "schema": "TaskRequest",
+      "valid": false,
+      "category": "unauthorized",
+      "expected_validation_keyword": "additionalProperties"
+    },
+    {
+      "id": "duplicate-event",
+      "path": "v1/duplicate-event.json",
+      "schema": "EventEnvelope",
+      "valid": true,
+      "category": "duplicate"
+    },
+    {
+      "id": "changed-request",
+      "path": "v1/changed-request.json",
+      "schema": "TaskRequest",
+      "valid": true,
+      "category": "conflict"
+    },
+    {
+      "id": "other-user",
+      "path": "v1/other-user.json",
+      "schema": "AuthenticatedActor",
+      "valid": true,
+      "category": "unauthorized"
+    },
+    {
+      "id": "unknown-dispatch",
+      "path": "v1/unknown-dispatch.json",
+      "schema": "DispatchOutcome",
+      "valid": true,
+      "category": "ambiguous"
+    },
+    {
+      "id": "error-validation_failed",
+      "path": "v1/error-validation_failed.json",
+      "schema": "ErrorEnvelope",
+      "valid": true,
+      "category": "response"
+    },
+    {
+      "id": "error-unsupported_schema_version",
+      "path": "v1/error-unsupported_schema_version.json",
+      "schema": "ErrorEnvelope",
+      "valid": true,
+      "category": "response"
+    },
+    {
+      "id": "error-forbidden",
+      "path": "v1/error-forbidden.json",
+      "schema": "ErrorEnvelope",
+      "valid": true,
+      "category": "response"
+    },
+    {
+      "id": "error-not_found",
+      "path": "v1/error-not_found.json",
+      "schema": "ErrorEnvelope",
+      "valid": true,
+      "category": "response"
+    },
+    {
+      "id": "error-unsupported_capability",
+      "path": "v1/error-unsupported_capability.json",
+      "schema": "ErrorEnvelope",
+      "valid": true,
+      "category": "response"
+    },
+    {
+      "id": "error-idempotency_conflict",
+      "path": "v1/error-idempotency_conflict.json",
+      "schema": "ErrorEnvelope",
+      "valid": true,
+      "category": "response"
+    },
+    {
+      "id": "error-remote_outcome_unknown",
+      "path": "v1/error-remote_outcome_unknown.json",
+      "schema": "ErrorEnvelope",
+      "valid": true,
+      "category": "response"
+    },
+    {
+      "id": "unsupported-schedule",
+      "path": "v1/unsupported-schedule.json",
+      "schema": "TaskRequest",
+      "valid": true,
+      "category": "unsupported"
+    },
+    {
+      "id": "malformed-event",
+      "path": "v1/malformed-event.json",
+      "schema": "EventEnvelope",
+      "valid": false,
+      "category": "malformed",
+      "expected_validation_keyword": "required"
+    },
+    {
+      "id": "agent-health",
+      "path": "v1/agent-health.json",
+      "schema": "AgentHealth",
+      "valid": true,
+      "category": "valid"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "valid-event",
+      "category": "valid",
+      "request_fixture": "event",
+      "response_fixture": "event-receipt",
+      "http_status": 202,
+      "operation": "event.ingest",
+      "expected_policy": "accept",
+      "behavior_verified_by": "future_service_integration_tests"
+    },
+    {
+      "id": "duplicate-event",
+      "category": "duplicate",
+      "request_fixture": "duplicate-event",
+      "response_fixture": "event-receipt",
+      "http_status": 200,
+      "operation": "event.ingest",
+      "expected_policy": "replay_original_event_and_task",
+      "behavior_verified_by": "future_service_integration_tests",
+      "setup": {
+        "prior_event_fixture": "event",
+        "prior_receipt_fixture": "event-receipt"
+      }
+    },
+    {
+      "id": "missing-objective",
+      "category": "malformed",
+      "request_fixture": "missing-objective",
+      "response_fixture": "error-validation_failed",
+      "http_status": 422,
+      "operation": "task.create",
+      "expected_policy": "reject_before_dispatch",
+      "behavior_verified_by": "future_service_integration_tests"
+    },
+    {
+      "id": "unsupported-version",
+      "category": "unsupported",
+      "request_fixture": "unsupported-version",
+      "response_fixture": "error-unsupported_schema_version",
+      "http_status": 400,
+      "operation": "task.create",
+      "expected_policy": "reject_version",
+      "behavior_verified_by": "future_service_integration_tests"
+    },
+    {
+      "id": "cross-user-status",
+      "category": "unauthorized",
+      "request_fixture": "other-user",
+      "response_fixture": "error-not_found",
+      "http_status": 404,
+      "operation": "task.read",
+      "expected_policy": "deny_cross_user_lookup",
+      "behavior_verified_by": "future_service_integration_tests",
+      "setup": {
+        "owner_fixture": "actor",
+        "resource_fixture": "task-status"
+      }
+    },
+    {
+      "id": "capability-mismatch",
+      "category": "unsupported",
+      "request_fixture": "unsupported-schedule",
+      "response_fixture": "error-unsupported_capability",
+      "http_status": 422,
+      "operation": "task.create",
+      "expected_policy": "no_capable_agent",
+      "behavior_verified_by": "future_service_integration_tests",
+      "setup": {
+        "agent_fixture": "capabilities",
+        "required_capability": "supports_schedule"
+      }
+    },
+    {
+      "id": "changed-key-payload",
+      "category": "conflict",
+      "request_fixture": "changed-request",
+      "response_fixture": "error-idempotency_conflict",
+      "http_status": 409,
+      "operation": "task.create",
+      "expected_policy": "retain_original_record",
+      "behavior_verified_by": "future_service_integration_tests",
+      "setup": {
+        "prior_request_fixture": "task-request"
+      }
+    },
+    {
+      "id": "unknown-dispatch",
+      "category": "ambiguous",
+      "request_fixture": "dispatch-request",
+      "response_fixture": "unknown-dispatch",
+      "http_status": 200,
+      "operation": "task.dispatch",
+      "expected_policy": "retain_unknown_no_new_dispatch",
+      "behavior_verified_by": "future_service_integration_tests"
+    },
+    {
+      "id": "completed",
+      "category": "completed",
+      "request_fixture": "task-list-query",
+      "response_fixture": "task-page",
+      "http_status": 200,
+      "operation": "task.list",
+      "expected_policy": "return_completed_task",
+      "behavior_verified_by": "future_service_integration_tests"
+    },
+    {
+      "id": "valid-task",
+      "category": "valid",
+      "request_fixture": "task-request",
+      "response_fixture": "queued-task",
+      "http_status": 202,
+      "operation": "task.create",
+      "expected_policy": "accept",
+      "behavior_verified_by": "future_service_integration_tests"
+    },
+    {
+      "id": "valid-dispatch",
+      "category": "valid",
+      "request_fixture": "dispatch-request",
+      "response_fixture": "dispatch-outcome",
+      "http_status": 200,
+      "operation": "task.dispatch",
+      "expected_policy": "persist_remote_reference",
+      "behavior_verified_by": "future_service_integration_tests"
+    },
+    {
+      "id": "valid-delivery",
+      "category": "valid",
+      "request_fixture": "delivery-request",
+      "response_fixture": "delivery-receipt",
+      "http_status": 202,
+      "operation": "delivery.submit",
+      "expected_policy": "record_receipt_not_channel_success",
+      "behavior_verified_by": "future_service_integration_tests"
+    }
+  ],
+  "fingerprint_cases": [
+    {
+      "operation": "event.ingest",
+      "left": "event",
+      "right": "duplicate-event",
+      "identity": {
+        "tenant_id": "44331ef6-b679-4ecb-bd83-fef7d89d25cd",
+        "principal_id": "733a6e4b-468b-42c6-b5ec-3e23284ad2ae"
+      },
+      "equal": true
+    },
+    {
+      "operation": "task.create",
+      "left": "task-request",
+      "right": "changed-request",
+      "identity": {
+        "tenant_id": "44331ef6-b679-4ecb-bd83-fef7d89d25cd",
+        "principal_id": "733a6e4b-468b-42c6-b5ec-3e23284ad2ae"
+      },
+      "equal": false
+    }
+  ],
+  "simulation_time": "2026-11-21T12:01:00Z"
+}

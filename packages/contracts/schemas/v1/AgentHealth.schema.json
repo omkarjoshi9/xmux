@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmux.example/contracts/v1/AgentHealth.schema.json",
+  "title": "AgentHealth",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1"
+    },
+    "agent_id": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+    },
+    "status": {
+      "enum": [
+        "healthy",
+        "degraded",
+        "offline"
+      ]
+    },
+    "checked_at": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+    }
+  },
+  "required": [
+    "schema_version",
+    "agent_id",
+    "status",
+    "checked_at"
+  ]
+}

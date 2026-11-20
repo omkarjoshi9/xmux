@@ -1,0 +1,185 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmux.example/contracts/v1/DispatchOutcome.schema.json",
+  "title": "DispatchOutcome",
+  "description": "Normalized authenticated multiplexer observation, not an HTTP status interpretation. Verify all bindings and supporting evidence before transitioning.",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1"
+        },
+        "task_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+        },
+        "agent_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+        },
+        "correlation_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+        },
+        "observed_at": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+        },
+        "outcome": {
+          "const": "ACCEPTED"
+        },
+        "remote_ref": {
+          "$ref": "https://xmux.example/contracts/v1/RemoteTaskRef.schema.json"
+        }
+      },
+      "required": [
+        "schema_version",
+        "task_id",
+        "agent_id",
+        "correlation_id",
+        "observed_at",
+        "outcome",
+        "remote_ref"
+      ]
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1"
+        },
+        "task_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+        },
+        "agent_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+        },
+        "correlation_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+        },
+        "observed_at": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+        },
+        "outcome": {
+          "const": "TERMINAL"
+        },
+        "result": {
+          "$ref": "https://xmux.example/contracts/v1/RemoteResult.schema.json"
+        }
+      },
+      "required": [
+        "schema_version",
+        "task_id",
+        "agent_id",
+        "correlation_id",
+        "observed_at",
+        "outcome",
+        "result"
+      ]
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1"
+        },
+        "task_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+        },
+        "agent_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+        },
+        "correlation_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+        },
+        "observed_at": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+        },
+        "outcome": {
+          "const": "NOT_ACCEPTED"
+        },
+        "failure_class": {
+          "type": "string",
+          "enum": [
+            "TRANSIENT",
+            "PERMANENT"
+          ]
+        },
+        "error": {
+          "$ref": "https://xmux.example/contracts/v1/ErrorEnvelope.schema.json"
+        },
+        "evidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "evidence_ref": {
+              "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+            },
+            "never_accepted": {
+              "const": true
+            },
+            "acceptance_closed": {
+              "const": true
+            }
+          },
+          "required": [
+            "evidence_ref",
+            "never_accepted",
+            "acceptance_closed"
+          ]
+        }
+      },
+      "required": [
+        "schema_version",
+        "task_id",
+        "agent_id",
+        "correlation_id",
+        "observed_at",
+        "outcome",
+        "failure_class",
+        "error",
+        "evidence"
+      ]
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1"
+        },
+        "task_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+        },
+        "agent_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+        },
+        "correlation_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+        },
+        "observed_at": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+        },
+        "outcome": {
+          "const": "UNKNOWN"
+        },
+        "error": {
+          "$ref": "https://xmux.example/contracts/v1/ErrorEnvelope.schema.json"
+        }
+      },
+      "required": [
+        "schema_version",
+        "task_id",
+        "agent_id",
+        "correlation_id",
+        "observed_at",
+        "outcome",
+        "error"
+      ]
+    }
+  ]
+}

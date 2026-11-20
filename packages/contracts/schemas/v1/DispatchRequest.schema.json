@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmux.example/contracts/v1/DispatchRequest.schema.json",
+  "title": "DispatchRequest",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1"
+    },
+    "attempt": {
+      "$ref": "https://xmux.example/contracts/v1/DispatchAttempt.schema.json"
+    },
+    "task": {
+      "$ref": "https://xmux.example/contracts/v1/TaskRequest.schema.json"
+    },
+    "delegation": {
+      "$ref": "https://xmux.example/contracts/v1/DelegationContext.schema.json"
+    }
+  },
+  "required": [
+    "schema_version",
+    "attempt",
+    "task",
+    "delegation"
+  ]
+}

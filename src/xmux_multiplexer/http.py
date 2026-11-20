@@ -5,11 +5,12 @@ import json
 from datetime import datetime, timezone
 from dataclasses import asdict, replace
 from typing import Callable
+from uuid import UUID
 
 from .contracts import AgentCapabilities, AgentTask, PersistedTaskReference
 from .dispatch import DispatchContext, Dispatcher, UnknownDispatch, ApprovedCodingScope
 from .dispatch_ledger import DispatchConflict, DispatchInProgress
-from .wire import capabilities_to_wire
+from .wire import capabilities_to_wire, receipt_to_wire
 
 
 def create_app(dispatcher: Dispatcher, service_token: str, *, references=None, approval_verifier=None,
@@ -127,6 +128,10 @@ def create_app(dispatcher: Dispatcher, service_token: str, *, references=None, a
                              task_data["intent"], task_data["objective"], frozenset(caps), payload)
             # Coding writes require an independently verified approval integration.
             requested_agent = data.get("requested_agent")
+            correlation_id = data.get("correlation_id")
+            if not isinstance(correlation_id, str):
+                raise ValueError("correlation_id_required")
+            UUID(correlation_id)
             if schema_validator is None or verify_delegation is None or not orchestrator_service_id:
                 return respond(start_response, "503 Service Unavailable", {"error": "delegation_verifier_unavailable"})
             # Verification must authenticate the grant and bind its action fingerprint
@@ -216,8 +221,9 @@ def create_app(dispatcher: Dispatcher, service_token: str, *, references=None, a
             ref = PersistedTaskReference(receipt.agent_id, receipt.remote_task_id, tenant, principal)
             if references is not None:
                 references[task.task_id] = ref
-            result = asdict(receipt)
-            result["state"] = receipt.state.value
+            result = receipt_to_wire(receipt, task_id=task.task_id,
+                                     correlation_id=correlation_id, accepted_at=datetime.now(timezone.utc))
+            schema_validator.validate("RemoteTaskRef", result)
             dispatch_ledger.accepted(task, reservation_agent, json.dumps(result, separators=(",", ":")))
             return respond(start_response, "200 OK", result)
         except DispatchConflict:

@@ -7,7 +7,7 @@ the calling service and validating the user's approval with the control plane.
 from dataclasses import dataclass
 from typing import Mapping
 
-from .contracts import AgentAdapter, AgentTask, RemoteTaskReceipt
+from .contracts import AgentAdapter, AgentResult, AgentState, AgentTask, PersistedTaskReference, RemoteTaskReceipt
 from .registry import AgentRegistry
 
 
@@ -33,6 +33,25 @@ class Dispatcher:
     def __init__(self, registry: AgentRegistry, adapters: Mapping[str, AgentAdapter]):
         self.registry = registry
         self.adapters = dict(adapters)
+
+    def _resolve(self, reference: PersistedTaskReference, context: DispatchContext) -> AgentAdapter:
+        # Ownership is checked solely against trusted persisted metadata before touching provider.
+        if reference.tenant_id != context.tenant_id or reference.principal_id != context.principal_id:
+            raise PermissionError("task_reference_forbidden")
+        adapter = self.adapters.get(reference.agent_id)
+        if adapter is None or adapter.id != reference.agent_id:
+            raise LookupError("unknown_agent")
+        return adapter
+
+    def status(self, reference: PersistedTaskReference, context: DispatchContext) -> AgentState:
+        adapter = self._resolve(reference, context)
+        if not adapter.capabilities().supports_status:
+            raise NotImplementedError("status_unsupported")
+        return adapter.status(reference.remote_task_id)
+
+    def result(self, reference: PersistedTaskReference, context: DispatchContext) -> AgentResult | None:
+        adapter = self._resolve(reference, context)
+        return adapter.result(reference.remote_task_id)
 
     def submit(self, task: AgentTask, context: DispatchContext,
                requested_agent: str | None = None) -> RemoteTaskReceipt:

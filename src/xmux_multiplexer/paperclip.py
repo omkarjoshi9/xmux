@@ -12,6 +12,7 @@ from .contracts import AgentCapabilities, AgentResult, AgentState, AgentTask, Re
 class PaperclipClient(Protocol):
     def post(self, path: str, body: Mapping[str, str]) -> Mapping[str, object]: ...
     def get(self, path: str) -> Mapping[str, object]: ...
+    def issue_reference(self, issue_id: str) -> str: ...
 
 
 class PaperclipAdapter:
@@ -47,7 +48,13 @@ class PaperclipAdapter:
         return self._state(issue)
 
     def result(self, remote_task_id: str) -> AgentResult | None:
-        raise NotImplementedError("paperclip_result_unsupported")
+        issue = self._client.get(f"/api/issues/{quote(remote_task_id, safe='')}")
+        state = self._state(issue)
+        if state != AgentState.COMPLETED:
+            return None
+        # The issue is the owning provider's durable record. It can contain
+        # comments, documents, and attachments accessible through Paperclip.
+        return AgentResult(state, (self._client.issue_reference(remote_task_id),))
 
     @staticmethod
     def _state(issue: Mapping[str, object]) -> AgentState:

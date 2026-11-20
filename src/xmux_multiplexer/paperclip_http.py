@@ -1,6 +1,6 @@
 """HTTP transport for Paperclip's documented issues API."""
 import json
-from urllib.parse import urlsplit
+from urllib.parse import quote, urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 
@@ -43,3 +43,8 @@ class PaperclipHttpClient:
 
     def get(self, path):
         return self._request("GET", path)
+
+    def issue_reference(self, issue_id):
+        if not isinstance(issue_id, str) or not issue_id:
+            raise ValueError("issue_id_required")
+        return self._endpoint + "/api/issues/" + quote(issue_id, safe="")

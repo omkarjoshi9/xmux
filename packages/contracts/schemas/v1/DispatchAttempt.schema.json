@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmux.example/contracts/v1/DispatchAttempt.schema.json",
+  "title": "DispatchAttempt",
+  "description": "Persisted before network send. IDs and fingerprint identify one immutable logical dispatch; retransmission must not invent a new identity.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1"
+    },
+    "task_id": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+    },
+    "task_version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "principal_id": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+    },
+    "tenant_id": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+    },
+    "agent_id": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+    },
+    "correlation_id": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+    },
+    "remote_idempotency_key": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+    },
+    "request_fingerprint": {
+      "$ref": "https://xmux.example/contracts/v1/RequestFingerprint.schema.json"
+    },
+    "started_at": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+    }
+  },
+  "required": [
+    "schema_version",
+    "task_id",
+    "task_version",
+    "principal_id",
+    "tenant_id",
+    "agent_id",
+    "correlation_id",
+    "remote_idempotency_key",
+    "request_fingerprint",
+    "started_at"
+  ]
+}

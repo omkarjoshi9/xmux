@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmux.example/contracts/v1/DeliveryRequest.schema.json",
+  "title": "DeliveryRequest",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1"
+    },
+    "task_id": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+    },
+    "idempotency_key": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "pattern": "\\S"
+    },
+    "channel": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "\\S"
+    },
+    "reply_target": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/ReplyTarget"
+    },
+    "text": {
+      "type": "string",
+      "maxLength": 65536
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+      },
+      "maxItems": 100
+    }
+  },
+  "required": [
+    "schema_version",
+    "task_id",
+    "idempotency_key",
+    "channel",
+    "reply_target",
+    "text",
+    "artifacts"
+  ]
+}

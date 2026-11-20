@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmux.example/contracts/v1/ApprovalReceipt.schema.json",
+  "title": "ApprovalReceipt",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1"
+    },
+    "approval_id": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+    },
+    "task_id": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+    },
+    "decision": {
+      "enum": [
+        "approve",
+        "deny"
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "approval_id",
+    "task_id",
+    "decision"
+  ]
+}

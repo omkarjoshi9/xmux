@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmux.example/contracts/v1/AuthorizationScope.schema.json",
+  "title": "AuthorizationScope",
+  "description": "Closed draft operation grants. A listed scope is necessary but never sufficient for ownership, approval or delegation.",
+  "type": "string",
+  "enum": [
+    "agents:read",
+    "approvals:decide",
+    "deliveries:submit",
+    "events:ingest",
+    "references:read",
+    "routines:create",
+    "routines:read",
+    "tasks:cancel",
+    "tasks:create",
+    "tasks:dispatch",
+    "tasks:observe",
+    "tasks:read"
+  ]
+}

@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmux.example/contracts/v1/TaskCallback.schema.json",
+  "title": "TaskCallback",
+  "description": "Authenticated remote observation envelope. Callback UUID is a deduplication key. Sequence is per remote job when available, otherwise null; timestamps alone do not prove ordering.",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1"
+        },
+        "callback_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+        },
+        "emitted_at": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+        },
+        "sequence": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "kind": {
+          "const": "status"
+        },
+        "remote_ref": {
+          "$ref": "https://xmux.example/contracts/v1/RemoteTaskRef.schema.json"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "RUNNING",
+            "UNKNOWN"
+          ]
+        }
+      },
+      "required": [
+        "schema_version",
+        "callback_id",
+        "emitted_at",
+        "sequence",
+        "kind",
+        "remote_ref",
+        "status"
+      ]
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1"
+        },
+        "callback_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+        },
+        "emitted_at": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+        },
+        "sequence": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "kind": {
+          "const": "result"
+        },
+        "result": {
+          "$ref": "https://xmux.example/contracts/v1/RemoteResult.schema.json"
+        }
+      },
+      "required": [
+        "schema_version",
+        "callback_id",
+        "emitted_at",
+        "sequence",
+        "kind",
+        "result"
+      ]
+    }
+  ]
+}

@@ -40,6 +40,15 @@ class RemoteTaskReceipt:
 
 
 @dataclass(frozen=True)
+class PersistedTaskReference:
+    """Trusted, persisted routing and ownership metadata for a remote task."""
+    agent_id: str
+    remote_task_id: str
+    tenant_id: str
+    principal_id: str
+
+
+@dataclass(frozen=True)
 class AgentResult:
     state: AgentState
     result_refs: tuple[str, ...] = ()

@@ -4,7 +4,8 @@ from dataclasses import dataclass
 import json
 from typing import Callable, Mapping, Protocol
 from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
+from urllib.parse import urlsplit
+from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 
 class SecretResolver(Protocol):
@@ -16,18 +17,21 @@ class HttpTransport(Protocol):
              timeout: float) -> int: ...
 
 
+class NoRedirect(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
 class UrllibTransport:
     def post(self, url: str, headers: Mapping[str, str], body: bytes | None,
              timeout: float) -> int:
         request = Request(url, data=body, headers=dict(headers), method="POST")
         try:
-            with urlopen(request, timeout=timeout) as response:
+            with build_opener(NoRedirect()).open(request, timeout=timeout) as response:
                 return response.status
         except HTTPError as error:
             return error.code
         except (TimeoutError, URLError) as error:
-            if isinstance(error, URLError) and not isinstance(error.reason, TimeoutError):
-                raise
             raise WebhookOutcomeUnknown("request outcome is unknown; do not retry blindly") from error
 
 
@@ -47,7 +51,8 @@ class GrokBotWebhook:
     def __init__(self, url: str, secret_reference: str, secret_resolver: SecretResolver,
                  scopes: frozenset[str], transport: HttpTransport | None = None,
                  timeout: float = 10.0) -> None:
-        if not url.startswith("https://"):
+        parsed = urlsplit(url)
+        if parsed.scheme != "https" or not parsed.netloc or parsed.username or parsed.password or parsed.fragment:
             raise ValueError("webhook_url_must_use_https")
         if not scopes or not scopes.issubset(self.ALLOWED_SCOPES):
             raise ValueError("unsupported_scope")

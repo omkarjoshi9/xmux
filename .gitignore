@@ -1,5 +1,4 @@
-# Local implementation plans
+﻿__pycache__/
+*.py[cod]
 /plan/
-
-# Local dependency installations
 node_modules/

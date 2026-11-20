@@ -54,7 +54,6 @@ class Dispatcher:
         self._lock = Lock()
         self._failures: dict[str, int] = {}
         self._opened: dict[str, float] = {}
-        self._submitted: dict[tuple[str, str], RemoteTaskReceipt] = {}
 
     def _call(self, agent_id: str, operation):
         with self._lock:
@@ -127,19 +126,11 @@ class Dispatcher:
             raise LookupError("no_capable_agent")
         adapter = min(available, key=lambda agent: agent.id)
         try:
-            key = (adapter.id, task.idempotency_key)
-            with self._lock:
-                receipt = self._submitted.get(key)
-                if receipt is not None:
-                    return receipt
             try:
-                receipt = self._call(adapter.id, lambda: adapter.submit(task))
+                return self._call(adapter.id, lambda: adapter.submit(task))
             except (TimeoutError, FutureTimeout) as exc:
                 raise UnknownDispatch(task.task_id) from exc
             except Exception as exc:
                 raise UnknownDispatch(task.task_id, "submission_failed") from exc
-            with self._lock:
-                self._submitted[key] = receipt
-            return receipt
         except CircuitOpen as exc:
             raise LookupError("no_capable_agent") from exc

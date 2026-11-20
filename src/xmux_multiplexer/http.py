@@ -14,7 +14,8 @@ from .wire import capabilities_to_wire
 
 def create_app(dispatcher: Dispatcher, service_token: str, *, references=None, approval_verifier=None,
                openbot=None, grokbot=None, dispatch_ledger=None, authorize_principal=None, verify_delegation=None,
-               schema_validator=None, orchestrator_service_id=None, audience="multiplexer") -> Callable:
+               schema_validator=None, orchestrator_service_id=None, audience="multiplexer",
+               resolve_reference=None) -> Callable:
     if not service_token:
         raise ValueError("service_token_required")
 
@@ -63,6 +64,14 @@ def create_app(dispatcher: Dispatcher, service_token: str, *, references=None, a
                     return respond(start_response, "503 Service Unavailable", {"error": "schema_validator_unavailable"})
                 schema_validator.validate("AgentCapabilities", document)
                 return respond(start_response, "200 OK", document)
+            if path == "/internal/references/resolve" and method == "POST":
+                if resolve_reference is None:
+                    return respond(start_response, "503 Service Unavailable", {"error": "reference_resolver_unavailable"})
+                task_id, reference = data.get("task_id"), data.get("reference")
+                if not isinstance(task_id, str) or not task_id or not isinstance(reference, str) or not reference:
+                    raise ValueError("invalid_reference_request")
+                result = resolve_reference(tenant=tenant, principal=principal, task_id=task_id, reference=reference)
+                return respond(start_response, "200 OK", {"result": result})
             if path == "/internal/agents/status" or path == "/internal/agents/results":
                 if method != "POST":
                     return respond(start_response, "405 Method Not Allowed", {"error":"method_not_allowed"})

@@ -94,6 +94,23 @@ class AgentMailInstinct:
         return None
 
 
+
+    def resolve_reference(self, *, tenant: str, principal: str, task_id: str, reference: str):
+        """Read only the authenticated reply owned by this tenant and principal."""
+        from urllib.parse import unquote, urlsplit
+
+        parsed = urlsplit(reference)
+        parts = parsed.path.split("/")
+        if parsed.scheme != "agentmail" or len(parts) != 3 or parsed.query or parsed.fragment:
+            raise ValueError("invalid_agentmail_reference")
+        inbox, thread_id, message_id = unquote(parsed.netloc), unquote(parts[1]), unquote(parts[2])
+        if inbox != self._inbox or not thread_id or not message_id:
+            raise ValueError("invalid_agentmail_reference")
+        result = self.result(tenant=tenant, principal=principal, task_id=task_id)
+        if result is None or result["thread_id"] != thread_id or result["message_id"] != message_id:
+            raise LookupError("reference_not_found")
+        return result
+
     def result_for_thread(self, thread_id: str):
         """Resolve owner from durable state; caller must authorize the remote reference."""
         with closing(sqlite3.connect(self._database)) as db:

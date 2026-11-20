@@ -15,7 +15,7 @@ def create_service(*, service_token: str, database: str, schema_directory: str,
                    agents: Iterable[AgentConfig], adapters: Mapping[str, AgentAdapter],
                    authorize_principal: Callable[..., bool], verify_delegation: Callable[..., dict],
                    orchestrator_service_id: str, approval_verifier: Callable[..., Any],
-                   openbot=None, grokbot=None):
+                   openbot=None, grokbot=None, resolve_reference=None):
     """Build WSGI service from server-side configuration and authenticated hooks.
 
     The supplied hooks must authenticate principal ownership, verify delegation
@@ -36,5 +36,5 @@ def create_service(*, service_token: str, database: str, schema_directory: str,
         schema_validator=SharedSchemaValidator(schema_directory),
         authorize_principal=authorize_principal, verify_delegation=verify_delegation,
         orchestrator_service_id=orchestrator_service_id, approval_verifier=approval_verifier,
-        openbot=openbot, grokbot=grokbot,
+        openbot=openbot, grokbot=grokbot, resolve_reference=resolve_reference,
     )

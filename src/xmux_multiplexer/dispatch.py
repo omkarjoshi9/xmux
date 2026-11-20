@@ -5,6 +5,9 @@ the calling service and validating the user's approval with the control plane.
 """
 
 from dataclasses import dataclass
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+from threading import BoundedSemaphore, Lock
+from time import monotonic
 from typing import Mapping
 
 from .contracts import AgentAdapter, AgentResult, AgentState, AgentTask, PersistedTaskReference, RemoteTaskReceipt
@@ -28,11 +31,67 @@ class DispatchContext:
 class UnknownDispatch(RuntimeError):
     """The provider may have accepted the request; reconcile before retrying."""
 
+    def __init__(self, task_id: str, code: str = "submission_outcome_unknown"):
+        self.task_id, self.code = task_id, code
+        super().__init__(code)
+
+
+class CircuitOpen(RuntimeError):
+    def __init__(self, agent_id: str):
+        self.agent_id, self.code = agent_id, "agent_circuit_open"
+        super().__init__(self.code)
+
 
 class Dispatcher:
-    def __init__(self, registry: AgentRegistry, adapters: Mapping[str, AgentAdapter]):
+    def __init__(self, registry: AgentRegistry, adapters: Mapping[str, AgentAdapter], *,
+                 timeout_seconds: float = 5.0, failure_threshold: int = 3,
+                 recovery_seconds: float = 30.0):
+        if timeout_seconds <= 0 or failure_threshold < 1 or recovery_seconds <= 0:
+            raise ValueError("invalid_dispatch_limits")
         self.registry = registry
         self.adapters = dict(adapters)
+        self.timeout_seconds, self.failure_threshold, self.recovery_seconds = timeout_seconds, failure_threshold, recovery_seconds
+        self._lock = Lock()
+        self._failures: dict[str, int] = {}
+        self._opened: dict[str, float] = {}
+        self._probing: set[str] = set()
+        self._executor = ThreadPoolExecutor(max_workers=8)
+        self._slots = BoundedSemaphore(8)
+
+    def _call(self, agent_id: str, operation):
+        with self._lock:
+            opened = self._opened.get(agent_id)
+            if opened is not None:
+                if monotonic() - opened < self.recovery_seconds or agent_id in self._probing:
+                    raise CircuitOpen(agent_id)
+                self._probing.add(agent_id)
+        if not self._slots.acquire(blocking=False):
+            with self._lock:
+                self._probing.discard(agent_id)
+            raise CircuitOpen(agent_id)
+        try:
+            future = self._executor.submit(operation)
+        except BaseException:
+            self._slots.release()
+            with self._lock:
+                self._probing.discard(agent_id)
+            raise
+        future.add_done_callback(lambda _: self._slots.release())
+        try:
+            result = future.result(timeout=self.timeout_seconds)
+        except Exception:
+            with self._lock:
+                self._probing.discard(agent_id)
+                count = self._failures.get(agent_id, 0) + 1
+                self._failures[agent_id] = count
+                if count >= self.failure_threshold:
+                    self._opened[agent_id] = monotonic()
+            raise
+        with self._lock:
+            self._probing.discard(agent_id)
+            self._failures.pop(agent_id, None)
+            self._opened.pop(agent_id, None)
+        return result
 
     def _resolve(self, reference: PersistedTaskReference, context: DispatchContext) -> AgentAdapter:
         # Ownership is checked solely against trusted persisted metadata before touching provider.
@@ -81,14 +140,25 @@ class Dispatcher:
         available = []
         for config in candidates:
             adapter = self.adapters.get(config.agent_id)
-            if (adapter is not None and adapter.id == config.agent_id
-                    and required.issubset(adapter.capabilities().operations)
-                    and adapter.health() == "healthy"):
-                available.append(adapter)
+            if adapter is None or adapter.id != config.agent_id:
+                continue
+            try:
+                if (required.issubset(adapter.capabilities().operations)
+                        and self._call(adapter.id, adapter.health) == "healthy"):
+                    available.append(adapter)
+            except Exception:
+                continue
         if not available:
             raise LookupError("no_capable_agent")
         adapter = min(available, key=lambda agent: agent.id)
         try:
-            return adapter.submit(task)
-        except TimeoutError as exc:
-            raise UnknownDispatch(task.task_id) from exc
+            try:
+                return self._call(adapter.id, lambda: adapter.submit(task))
+            except CircuitOpen as exc:
+                raise LookupError("no_capable_agent") from exc
+            except (TimeoutError, FutureTimeout) as exc:
+                raise UnknownDispatch(task.task_id) from exc
+            except Exception as exc:
+                raise UnknownDispatch(task.task_id, "submission_failed") from exc
+        except CircuitOpen as exc:
+            raise LookupError("no_capable_agent") from exc

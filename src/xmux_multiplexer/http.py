@@ -218,13 +218,18 @@ def create_app(dispatcher: Dispatcher, service_token: str, *, references=None, a
             if reservation.state == "accepted":
                 return respond(start_response, "200 OK", json.loads(reservation.remote_ref))
             receipt = dispatcher.submit(task, DispatchContext(principal, tenant, scope), requested_agent)
-            ref = PersistedTaskReference(receipt.agent_id, receipt.remote_task_id, tenant, principal)
-            if references is not None:
-                references[task.task_id] = ref
-            result = receipt_to_wire(receipt, task_id=task.task_id,
-                                     correlation_id=correlation_id, accepted_at=datetime.now(timezone.utc))
-            schema_validator.validate("RemoteTaskRef", result)
-            dispatch_ledger.accepted(task, reservation_agent, json.dumps(result, separators=(",", ":")))
+            try:
+                ref = PersistedTaskReference(receipt.agent_id, receipt.remote_task_id, tenant, principal)
+                result = receipt_to_wire(receipt, task_id=task.task_id,
+                                         correlation_id=correlation_id, accepted_at=datetime.now(timezone.utc))
+                schema_validator.validate("RemoteTaskRef", result)
+                dispatch_ledger.accepted(task, reservation_agent, json.dumps(result, separators=(",", ":")))
+                if references is not None:
+                    references[task.task_id] = ref
+            except Exception as exc:
+                # The remote submission already happened; never classify this
+                # as a safe validation failure or silently submit it again.
+                raise UnknownDispatch(task.task_id) from exc
             return respond(start_response, "200 OK", result)
         except DispatchConflict:
             return respond(start_response, "409 Conflict", {"error": "idempotency_conflict"})

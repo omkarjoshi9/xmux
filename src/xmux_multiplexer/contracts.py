@@ -7,6 +7,7 @@ from typing import Mapping, Protocol
 
 class AgentState(StrEnum):
     RUNNING = "running"
+    INTERRUPTED = "interrupted"
     COMPLETED = "completed"
     FAILED = "failed"
 
@@ -18,6 +19,8 @@ class AgentCapabilities:
     supports_cancel: bool = False
     supports_schedule: bool = False
     supports_memory_lookup: bool = False
+    supports_artifacts: bool = False
+    supports_scope_control: bool = False
 
 
 @dataclass(frozen=True)

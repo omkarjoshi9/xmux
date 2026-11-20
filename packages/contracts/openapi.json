@@ -2,12 +2,456 @@
   "openapi": "3.1.1",
   "info": {
     "title": "XMUX shared contracts (draft)",
-    "version": "0.1.0-draft.2",
-    "description": "P0.2–P0.3 schema catalog only. Pending team agreement. Empty paths are intentional: service operations, authentication bindings and HTTP response mappings are defined in later contract tasks. This document describes no deployed service."
+    "version": "0.1.0-draft.3",
+    "description": "P0.2–P0.4 draft schema and HTTP convention catalog. Empty paths are intentional: service operations and authentication bindings remain future work. This document describes no deployed service."
   },
   "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
   "paths": {},
   "components": {
+    "parameters": {
+      "CorrelationId": {
+        "name": "X-Correlation-ID",
+        "in": "header",
+        "required": false,
+        "description": "Single UUID correlation identifier. Echo the validated request value or generate one; it is not authorization or an idempotency key.",
+        "schema": {
+          "$ref": "#/components/schemas/Common/$defs/Uuid"
+        }
+      },
+      "PageLimit": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 20
+        }
+      },
+      "PageCursor": {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "$ref": "#/components/schemas/Common/$defs/Cursor"
+        }
+      },
+      "TaskStatusFilter": {
+        "name": "status",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "$ref": "#/components/schemas/Common/$defs/TaskState"
+        }
+      }
+    },
+    "headers": {
+      "CorrelationId": {
+        "description": "Single UUID correlation identifier. Echo the validated request value or generate one; it is not authorization or an idempotency key.",
+        "schema": {
+          "$ref": "#/components/schemas/Common/$defs/Uuid"
+        }
+      },
+      "RetryAfter": {
+        "description": "Optional integer delay in seconds matching retry_after_seconds when present. Does not authorize retry.",
+        "schema": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$"
+        }
+      },
+      "WwwAuthenticate": {
+        "description": "Required authentication challenge on HTTP 401; configured by the authentication layer.",
+        "schema": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "responses": {
+      "Error400": {
+        "description": "HTTP 400: malformed_json, unsupported_schema_version, invalid_request, invalid_cursor. HTTP mapping applies when this operation fails; a successful status lookup may contain a remote error without failing HTTP.",
+        "headers": {
+          "X-Correlation-ID": {
+            "$ref": "#/components/headers/CorrelationId"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "malformed_json",
+                        "unsupported_schema_version",
+                        "invalid_request",
+                        "invalid_cursor"
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "Error401": {
+        "description": "HTTP 401: unauthenticated. HTTP mapping applies when this operation fails; a successful status lookup may contain a remote error without failing HTTP.",
+        "headers": {
+          "X-Correlation-ID": {
+            "$ref": "#/components/headers/CorrelationId"
+          },
+          "WWW-Authenticate": {
+            "$ref": "#/components/headers/WwwAuthenticate"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "unauthenticated"
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "Error403": {
+        "description": "HTTP 403: forbidden. HTTP mapping applies when this operation fails; a successful status lookup may contain a remote error without failing HTTP.",
+        "headers": {
+          "X-Correlation-ID": {
+            "$ref": "#/components/headers/CorrelationId"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "forbidden"
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "Error404": {
+        "description": "HTTP 404: not_found. HTTP mapping applies when this operation fails; a successful status lookup may contain a remote error without failing HTTP.",
+        "headers": {
+          "X-Correlation-ID": {
+            "$ref": "#/components/headers/CorrelationId"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "not_found"
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "Error409": {
+        "description": "HTTP 409: idempotency_conflict, invalid_state_transition, approval_required, approval_expired, result_pending, remote_outcome_unknown. HTTP mapping applies when this operation fails; a successful status lookup may contain a remote error without failing HTTP.",
+        "headers": {
+          "X-Correlation-ID": {
+            "$ref": "#/components/headers/CorrelationId"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "idempotency_conflict",
+                        "invalid_state_transition",
+                        "approval_required",
+                        "approval_expired",
+                        "result_pending",
+                        "remote_outcome_unknown"
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "Error413": {
+        "description": "HTTP 413: payload_too_large. HTTP mapping applies when this operation fails; a successful status lookup may contain a remote error without failing HTTP.",
+        "headers": {
+          "X-Correlation-ID": {
+            "$ref": "#/components/headers/CorrelationId"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "payload_too_large"
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "Error415": {
+        "description": "HTTP 415: unsupported_media_type. HTTP mapping applies when this operation fails; a successful status lookup may contain a remote error without failing HTTP.",
+        "headers": {
+          "X-Correlation-ID": {
+            "$ref": "#/components/headers/CorrelationId"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "unsupported_media_type"
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "Error422": {
+        "description": "HTTP 422: validation_failed, unsupported_capability, cancellation_unsupported, content_unavailable. HTTP mapping applies when this operation fails; a successful status lookup may contain a remote error without failing HTTP.",
+        "headers": {
+          "X-Correlation-ID": {
+            "$ref": "#/components/headers/CorrelationId"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "validation_failed",
+                        "unsupported_capability",
+                        "cancellation_unsupported",
+                        "content_unavailable"
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "Error429": {
+        "description": "HTTP 429: rate_limited. HTTP mapping applies when this operation fails; a successful status lookup may contain a remote error without failing HTTP.",
+        "headers": {
+          "X-Correlation-ID": {
+            "$ref": "#/components/headers/CorrelationId"
+          },
+          "Retry-After": {
+            "$ref": "#/components/headers/RetryAfter"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "rate_limited"
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "Error500": {
+        "description": "HTTP 500: internal_error. HTTP mapping applies when this operation fails; a successful status lookup may contain a remote error without failing HTTP.",
+        "headers": {
+          "X-Correlation-ID": {
+            "$ref": "#/components/headers/CorrelationId"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "internal_error"
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "Error502": {
+        "description": "HTTP 502: auth_failed, remote_failure. HTTP mapping applies when this operation fails; a successful status lookup may contain a remote error without failing HTTP.",
+        "headers": {
+          "X-Correlation-ID": {
+            "$ref": "#/components/headers/CorrelationId"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "auth_failed",
+                        "remote_failure"
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "Error503": {
+        "description": "HTTP 503: unavailable, remote_unavailable. HTTP mapping applies when this operation fails; a successful status lookup may contain a remote error without failing HTTP.",
+        "headers": {
+          "X-Correlation-ID": {
+            "$ref": "#/components/headers/CorrelationId"
+          },
+          "Retry-After": {
+            "$ref": "#/components/headers/RetryAfter"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "unavailable",
+                        "remote_unavailable"
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
     "schemas": {
       "AgentCapabilities": {
         "title": "AgentCapabilities",
@@ -323,7 +767,8 @@
         "$defs": {
           "Uuid": {
             "type": "string",
-            "format": "uuid"
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
           },
           "Reference": {
             "type": "string",
@@ -409,6 +854,13 @@
               "FAILED",
               "CANCELLED"
             ]
+          },
+          "Cursor": {
+            "type": "string",
+            "minLength": 16,
+            "maxLength": 2048,
+            "pattern": "^[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*$",
+            "description": "Opaque URL-safe authenticated pagination cursor. Syntax validation does not prove validity or authorization."
           }
         }
       },
@@ -461,6 +913,38 @@
           "artifacts"
         ]
       },
+      "ErrorCode": {
+        "title": "ErrorCode",
+        "description": "Closed draft v1 error vocabulary. HTTP mappings live in conventions/http.json; tests prevent drift. Codes do not authorize retries.",
+        "type": "string",
+        "enum": [
+          "malformed_json",
+          "unsupported_schema_version",
+          "invalid_request",
+          "invalid_cursor",
+          "unauthenticated",
+          "forbidden",
+          "not_found",
+          "idempotency_conflict",
+          "invalid_state_transition",
+          "approval_required",
+          "approval_expired",
+          "result_pending",
+          "remote_outcome_unknown",
+          "payload_too_large",
+          "unsupported_media_type",
+          "validation_failed",
+          "unsupported_capability",
+          "cancellation_unsupported",
+          "content_unavailable",
+          "rate_limited",
+          "internal_error",
+          "auth_failed",
+          "remote_failure",
+          "unavailable",
+          "remote_unavailable"
+        ]
+      },
       "ErrorEnvelope": {
         "title": "ErrorEnvelope",
         "description": "Draft normalized error. Message must be sanitized. Neither code nor retry_after_seconds grants permission to retry a side effect.",
@@ -472,8 +956,7 @@
             "const": "1"
           },
           "code": {
-            "type": "string",
-            "pattern": "^[a-z][a-z0-9_]{0,127}$"
+            "$ref": "#/components/schemas/ErrorCode"
           },
           "message": {
             "type": "string",
@@ -495,6 +978,15 @@
                 "type": "null"
               }
             ]
+          },
+          "violations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FieldViolation"
+            },
+            "minItems": 1,
+            "maxItems": 50,
+            "uniqueItems": true
           }
         },
         "required": [
@@ -503,6 +995,30 @@
           "message",
           "correlation_id",
           "retry_after_seconds"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "code": {
+                  "const": "validation_failed"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "violations"
+              ],
+              "properties": {
+                "violations": true
+              }
+            },
+            "else": {
+              "properties": {
+                "violations": false
+              }
+            }
+          }
         ]
       },
       "EventEnvelope": {
@@ -595,6 +1111,43 @@
           "attachments",
           "reply_target",
           "auth_context"
+        ]
+      },
+      "FieldViolation": {
+        "title": "FieldViolation",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string",
+            "maxLength": 1024,
+            "pattern": "^(?:/(?:[^~/]|~[01])*)*$",
+            "description": "RFC 6901 pointer relative to the validated input; empty string denotes root. Do not echo untrusted property names; point to nearest declared ancestor."
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "required",
+              "type",
+              "format",
+              "enum",
+              "const",
+              "additional_property",
+              "min_length",
+              "max_length",
+              "minimum",
+              "maximum",
+              "pattern",
+              "min_items",
+              "max_items",
+              "unique_items",
+              "variant"
+            ]
+          }
+        },
+        "required": [
+          "path",
+          "reason"
         ]
       },
       "ReconciliationOutcome": {
@@ -1046,6 +1599,59 @@
           }
         ]
       },
+      "TaskListQuery": {
+        "title": "TaskListQuery",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 20
+          },
+          "cursor": {
+            "$ref": "#/components/schemas/Common/$defs/Cursor"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Common/$defs/TaskState"
+          }
+        },
+        "required": []
+      },
+      "TaskPage": {
+        "title": "TaskPage",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskStatus"
+            },
+            "maxItems": 100
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Common/$defs/Cursor"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "schema_version",
+          "items",
+          "next_cursor"
+        ]
+      },
       "TaskRequest": {
         "title": "TaskRequest",
         "type": "object",
@@ -1147,10 +1753,7 @@
           "error_code": {
             "anyOf": [
               {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "\\S"
+                "$ref": "#/components/schemas/ErrorCode"
               },
               {
                 "type": "null"

@@ -31,19 +31,116 @@ function embed(value) {
   );
 }
 
+const conventions = JSON.parse(
+  await readFile(new URL("conventions/http.json", root), "utf8"),
+);
+const pointer = (name) => ({ $ref: `#/components/schemas/${name}` });
+const commonPointer = (name) => pointer(`Common/$defs/${name}`);
+const correlation = {
+  description:
+    "Single UUID correlation identifier. Echo the validated request value or generate one; it is not authorization or an idempotency key.",
+  schema: commonPointer("Uuid"),
+};
+const parameters = {
+  CorrelationId: {
+    name: "X-Correlation-ID",
+    in: "header",
+    required: false,
+    ...correlation,
+  },
+  PageLimit: {
+    name: "limit",
+    in: "query",
+    required: false,
+    schema: { type: "integer", minimum: 1, maximum: 100, default: 20 },
+  },
+  PageCursor: {
+    name: "cursor",
+    in: "query",
+    required: false,
+    schema: commonPointer("Cursor"),
+  },
+  TaskStatusFilter: {
+    name: "status",
+    in: "query",
+    required: false,
+    schema: commonPointer("TaskState"),
+  },
+};
+const headers = {
+  CorrelationId: correlation,
+  RetryAfter: {
+    description:
+      "Optional integer delay in seconds matching retry_after_seconds when present. Does not authorize retry.",
+    schema: { type: "string", pattern: "^(0|[1-9][0-9]*)$" },
+  },
+  WwwAuthenticate: {
+    description:
+      "Required authentication challenge on HTTP 401; configured by the authentication layer.",
+    schema: { type: "string", minLength: 1 },
+  },
+};
+const statuses = [
+  ...new Set(
+    Object.values(conventions.errors).map((error) => error.http_status),
+  ),
+].sort();
+const responses = Object.fromEntries(
+  statuses.map((status) => {
+    const codes = Object.entries(conventions.errors)
+      .filter(([, entry]) => entry.http_status === status)
+      .map(([code]) => code);
+    return [
+      `Error${status}`,
+      {
+        description: `HTTP ${status}: ${codes.join(", ")}. HTTP mapping applies when this operation fails; a successful status lookup may contain a remote error without failing HTTP.`,
+        headers: {
+          "X-Correlation-ID": { $ref: "#/components/headers/CorrelationId" },
+          ...(status === 401
+            ? {
+                "WWW-Authenticate": {
+                  $ref: "#/components/headers/WwwAuthenticate",
+                },
+              }
+            : {}),
+          ...([429, 503].includes(status)
+            ? { "Retry-After": { $ref: "#/components/headers/RetryAfter" } }
+            : {}),
+        },
+        content: {
+          "application/json": {
+            schema: {
+              allOf: [
+                pointer("ErrorEnvelope"),
+                {
+                  type: "object",
+                  properties: { code: { type: "string", enum: codes } },
+                },
+              ],
+            },
+          },
+        },
+      },
+    ];
+  }),
+);
+
 const output =
   JSON.stringify(
     {
       openapi: "3.1.1",
       info: {
         title: "XMUX shared contracts (draft)",
-        version: "0.1.0-draft.2",
+        version: "0.1.0-draft.3",
         description:
-          "P0.2–P0.3 schema catalog only. Pending team agreement. Empty paths are intentional: service operations, authentication bindings and HTTP response mappings are defined in later contract tasks. This document describes no deployed service.",
+          "P0.2–P0.4 draft schema and HTTP convention catalog. Empty paths are intentional: service operations and authentication bindings remain future work. This document describes no deployed service.",
       },
       jsonSchemaDialect: "https://json-schema.org/draft/2020-12/schema",
       paths: {},
       components: {
+        parameters,
+        headers,
+        responses,
         schemas: Object.fromEntries(
           entries.map(([name, schema]) => [name, embed(schema)]),
         ),

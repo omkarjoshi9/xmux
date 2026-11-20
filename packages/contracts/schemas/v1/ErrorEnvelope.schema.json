@@ -11,8 +11,7 @@
       "const": "1"
     },
     "code": {
-      "type": "string",
-      "pattern": "^[a-z][a-z0-9_]{0,127}$"
+      "$ref": "https://xmux.example/contracts/v1/ErrorCode.schema.json"
     },
     "message": {
       "type": "string",
@@ -34,6 +33,15 @@
           "type": "null"
         }
       ]
+    },
+    "violations": {
+      "type": "array",
+      "items": {
+        "$ref": "https://xmux.example/contracts/v1/FieldViolation.schema.json"
+      },
+      "minItems": 1,
+      "maxItems": 50,
+      "uniqueItems": true
     }
   },
   "required": [
@@ -42,5 +50,29 @@
     "message",
     "correlation_id",
     "retry_after_seconds"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "code": {
+            "const": "validation_failed"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "violations"
+        ],
+        "properties": {
+          "violations": true
+        }
+      },
+      "else": {
+        "properties": {
+          "violations": false
+        }
+      }
+    }
   ]
 }

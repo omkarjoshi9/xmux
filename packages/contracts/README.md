@@ -1,6 +1,6 @@
 # XMUX shared contracts — draft v1
 
-P0.2–P0.3 provide thirteen language-neutral wire schemas and a generated OpenAPI component catalog. These are executable **proposals pending gateway, multiplexer and control-plane agreement**, not stable or deployed APIs.
+P0.2–P0.4 provide language-neutral wire schemas, HTTP conventions and a generated OpenAPI component catalog. These are executable **proposals pending gateway, multiplexer and control-plane agreement**, not stable or deployed APIs.
 
 ## Contents
 
@@ -41,11 +41,11 @@ npm test
 
 Edit source JSON Schemas, then regenerate `openapi.json`. Do not edit the generated file. The committed lockfile pins validation dependencies. The schemas use [JSON Schema draft 2020-12 as supported by Ajv](https://ajv.js.org/json-schema.html); the catalog uses [OpenAPI 3.1.1](https://spec.openapis.org/oas/v3.1.1.html).
 
-The OpenAPI document intentionally has empty `paths`: this task defines reusable schemas, not service operations, transport authentication, status codes or HTTP response mappings. Those contracts require the subsequent P0 tasks. No dispatch or delivery endpoint is implemented here.
+The OpenAPI document intentionally has empty `paths`: it defines reusable schemas, parameters, headers and error responses. Service operations and transport authentication bindings remain future work. No dispatch or delivery endpoint is implemented here.
 
 ## Draft conventions
 
-- `schema_version` is the string `"1"`; schema/package revision is independently `0.1.0-draft.2`. No compatibility promise is made until team approval.
+- `schema_version` is the string `"1"`; schema/package revision is independently `0.1.0-draft.3`. No compatibility promise is made until team approval.
 - Objects reject undeclared fields, including nested auth/reply structures. New fields require coordinated producer/consumer updates; do not assume additive changes are automatically compatible.
 - XMUX IDs are UUIDs; remote/platform references are opaque nonempty strings. UTC timestamps use an explicit `Z` suffix.
 - Task states are uppercase, including approval, retry and unknown states. State legality, timestamp ordering and remote-reference requirements for particular transitions are enforced by later lifecycle services, not this structural schema.
@@ -63,7 +63,7 @@ Before these drafts are frozen, confirm identity mapping provision/lookup, tenan
 
 The event wire field is `platform_event_id`; the gateway must namespace it across bot accounts/chats when necessary. Event deduplication, payload fingerprint conflicts, user isolation, remote execution safety and content retention remain service responsibilities and later P0 contracts.
 
-Local workshop notes and implementation plans stay in ignored `plan/`; they are not dependencies of this package. The complete error taxonomy, transport/security conventions, idempotency policy and shared cross-team fixture scenarios remain subsequent P0 tasks.
+Local workshop notes and implementation plans stay in ignored `plan/`; they are not dependencies of this package. Identity/security policy, idempotency semantics and shared cross-team fixture scenarios remain subsequent P0 tasks.
 
 ## Remote lifecycle semantics (P0.3)
 
@@ -93,6 +93,64 @@ An authoritative flag in JSON is a claim, not proof. The service must verify the
 
 ### Errors and remaining policy
 
-Error codes are bounded lowercase identifiers for now; the complete allowlist, HTTP mapping and field-validation detail format belong to P0.4. `retry_after_seconds` is a delay hint or null, never permission to retry a side effect. Producers must sanitize `message` before serialization; schema limits cannot detect credentials embedded in a string. Raw exception details, stack traces and arbitrary provider payload bags are not accepted.
+Error codes now use the P0.4 closed allowlist, HTTP mapping and structured validation details below. `retry_after_seconds` is a delay hint or null, never permission to retry a side effect. Producers must sanitize `message` before serialization; schema limits cannot detect credentials embedded in a string. Raw exception details, stack traces and arbitrary provider payload bags are not accepted.
 
 These tests establish structural invariants and parity between standalone and bundled schemas. They do not establish callback authentication, user isolation, actual remote capability, safe retry execution or lifecycle correctness; those need the later services and integration tests.
+
+## HTTP and validation conventions (P0.4)
+
+The source of HTTP code mappings is `conventions/http.json`; `ErrorCode.schema.json` contains the matching closed vocabulary, with tests detecting drift. The generator creates reusable OpenAPI error responses, query parameters and headers. These describe proposed service behavior; no HTTP handler is implemented yet. The mappings follow [HTTP semantics](https://www.rfc-editor.org/rfc/rfc9110.html), while the exact XMUX code names are project choices.
+
+### Validation and failure precedence
+
+1. Enforce transport framing, supported content type and configured byte limit before expensive parsing: `invalid_request` (400), `unsupported_media_type` (415), or `payload_too_large` (413).
+2. Authenticate and authorize the operation before returning detailed body diagnostics. Missing/invalid caller authentication is `unauthenticated` (401), with a configured `WWW-Authenticate` challenge; disallowed operations are `forbidden` (403). Hidden resources use the same `not_found` (404) response as missing resources.
+3. Reject malformed JSON as `malformed_json` (400). Bodies must be objects where the operation requires one. No duplicate JSON member names are accepted; the eventual parser must detect them and return `invalid_request` (400).
+4. For versioned bodies, a present string version other than `"1"` returns `unsupported_schema_version` (400) before version-specific validation. A missing or wrongly typed version is `validation_failed` (422), like other shape violations. No fallback to a different version and no type coercion.
+5. Validate the supported-version schema. Return `validation_failed` (422) with 1–50 unique `violations`; each contains a schema-controlled `path` and a bounded `reason`. Omit submitted values, raw validator errors and provider exception details. Sort by path then reason before truncation. A path uses [JSON Pointer](https://www.rfc-editor.org/rfc/rfc6901.html), with the empty string for root. Unknown property names may contain secrets: point to their nearest declared ancestor rather than echoing the name. Message text must use sanitized templates.
+6. Apply resource ownership, reference access, lifecycle and capability checks. A schema-valid identity/reference is not evidence of permission. No dispatch can happen before all checks pass.
+
+Header correlation selection precedes response creation; it does not bypass auth. A malformed correlation header is reported only after authentication/operation authorization succeeds; otherwise return the authentication/authorization error with a fresh server-generated correlation UUID. The exact middleware ordering for ingress limits and auth is implementation work; no detailed body diagnostics should leak to unauthenticated callers.
+
+| HTTP | Codes                                                                                                                                   |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| 400  | `malformed_json`, `unsupported_schema_version`, `invalid_request`, `invalid_cursor`                                                     |
+| 401  | `unauthenticated`                                                                                                                       |
+| 403  | `forbidden`                                                                                                                             |
+| 404  | `not_found`                                                                                                                             |
+| 409  | `idempotency_conflict`, `invalid_state_transition`, `approval_required`, `approval_expired`, `result_pending`, `remote_outcome_unknown` |
+| 413  | `payload_too_large`                                                                                                                     |
+| 415  | `unsupported_media_type`                                                                                                                |
+| 422  | `validation_failed`, `unsupported_capability`, `cancellation_unsupported`, `content_unavailable`                                        |
+| 429  | `rate_limited`                                                                                                                          |
+| 500  | `internal_error`                                                                                                                        |
+| 502  | `auth_failed`, `remote_failure`                                                                                                         |
+| 503  | `unavailable`, `remote_unavailable`                                                                                                     |
+
+These statuses apply when the HTTP operation itself fails. A successful task-status request remains HTTP 200 even if the remote task failed. `auth_failed` describes destination credentials; it must not be confused with caller authentication. Error bodies always use ErrorEnvelope v1, even when rejecting another requested version. Unknown provider codes normalize to the closest supported code; raw upstream text is not forwarded. Detailed retry and idempotency behavior remains P0.6/P0.7 work.
+
+`violations` is required only for `validation_failed` and forbidden on other error codes. `retry_after_seconds` remains required and nullable. On 429/503, an optional `Retry-After` response uses integer seconds matching a non-null body hint; omit it when no delay is known. The hint is not retry authorization. Runtime code must enforce matching header/body values.
+
+### Cursor pagination
+
+`TaskListQuery` models the normalized query for `GET /v1/tasks`: optional `limit` (default 20, range 1–100), `cursor`, and uppercase `status`. The HTTP parser accepts a single decimal integer for limit and rejects duplicate parameters, unknown fields, signs/fractions and invalid values as `invalid_request` (400). Schema defaults are annotations: the handler must apply 20 explicitly. There is no offset or client-selected principal.
+
+`TaskPage` contains `schema_version`, up to 100 TaskStatus items, and `next_cursor` (opaque token or explicit null). The handler must also enforce `items.length <= requested limit` and stop emitting a continuation once no more visible items remain. Empty pages are valid. No total count is exposed.
+
+Proposed ordering is `(created_at DESC, task_id DESC)` using a stable UUID tie-breaker. The cursor represents the last returned key and initial query upper bound. The server authenticates/signs or encrypts cursor state and binds it to tenant, principal, filters, effective limit, ordering, upper bound and expiry. Recheck access on every page. A malformed, tampered, expired or mismatched cursor returns the same `invalid_cursor` error without revealing its internals. The URL-safe syntax schema alone cannot verify any of those properties. Cursor encoding, key rotation and TTL require runtime decisions.
+
+Pagination is a live authorized view bounded by the initial creation high-water mark, not a database snapshot. New tasks above that boundary do not enter later pages; existing tasks can change status or visibility, so omissions across a changing filter are possible. Do not promise snapshot consistency or use cursor data as authorization.
+
+### IDs, timestamps and correlation
+
+XMUX identifiers use hyphenated UUID strings. Both hex cases are accepted; services emit lowercase canonical form. No specific UUID generation version is imposed yet. Platform IDs, agent IDs and remote references remain opaque strings and must not be coerced to numeric IDs or UUIDs.
+
+Timestamps must be valid UTC date-times with a literal `T` and `Z`, optionally fractional seconds. Emit millisecond precision by convention. Reject offsets (including `+00:00`) on the shared wire, local timestamps and invalid calendar dates; normalize provider times in the owning adapter. Occurrence time is source provenance, received/created time is server-owned, and clock skew is not authorization evidence. Chronological consistency and clock policy require service checks.
+
+`X-Correlation-ID` is an optional single UUID request header and a response header on success/errors. Header names are case-insensitive. Reuse a valid supplied UUID in canonical lowercase; generate a fresh UUID when absent. Reject duplicate, comma-joined or malformed values with `invalid_request` once auth permits that diagnostic; use a fresh server-generated UUID for the error response. Do not log or echo the invalid raw header. For HTTP errors, the response header equals the outer ErrorEnvelope `correlation_id`.
+
+This HTTP request correlation is diagnostic only: callers can reuse it, so it cannot deduplicate work or authorize access. RemoteTaskRef's correlation identifies a persisted dispatch attempt and must remain stable across its reconciliation. Do not overwrite remote correlation fields with an unrelated HTTP polling request ID. Nested remote errors can retain their own upstream correlation; outer HTTP failures use the current request's correlation.
+
+### Validation limits
+
+Tests cover schema acceptance/rejection, error-code/status consistency, generated OpenAPI validity, pagination bounds and header syntax. They do not implement duplicate-JSON-key detection, middleware ordering, cursor signing/ownership, field-error sanitization, chronological checks, or header/body matching. Those are explicit requirements for the API implementation.

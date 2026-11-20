@@ -5,7 +5,8 @@
   "$defs": {
     "Uuid": {
       "type": "string",
-      "format": "uuid"
+      "format": "uuid",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
     },
     "Reference": {
       "type": "string",
@@ -91,6 +92,13 @@
         "FAILED",
         "CANCELLED"
       ]
+    },
+    "Cursor": {
+      "type": "string",
+      "minLength": 16,
+      "maxLength": 2048,
+      "pattern": "^[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*$",
+      "description": "Opaque URL-safe authenticated pagination cursor. Syntax validation does not prove validity or authorization."
     }
   }
 }

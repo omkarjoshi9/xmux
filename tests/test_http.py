@@ -38,5 +38,24 @@ class HttpTests(unittest.TestCase):
         self.assertTrue(code.startswith("403"))
 
 
+    def test_end_to_end_status_results_and_duplicate(self):
+        refs = {}
+        self.app = create_app(self.app_dispatcher(), "secret", references=refs)
+        task = {"task_id": "one", "idempotency_key": "key", "intent": "research", "objective": "Research"}
+        body = {"principal_id": "alice", "tenant_id": "t", "task": task}
+        self.assertTrue(self.request("/internal/agents/dispatch", body)[0].startswith("200"))
+        self.assertTrue(self.request("/internal/agents/dispatch", body)[0].startswith("409"))
+        lookup = {"principal_id": "alice", "tenant_id": "t", "task_id": "one"}
+        self.assertEqual(self.request("/internal/agents/status", lookup)[1]["state"], "completed")
+        result = self.request("/internal/agents/results", lookup)[1]["result"]
+        self.assertEqual(result["result_refs"][0][:7], "mock://")
+        lookup["tenant_id"] = "other"
+        self.assertTrue(self.request("/internal/agents/status", lookup)[0].startswith("403"))
+
+    def app_dispatcher(self):
+        config = AgentConfig("a", "https://example.org", frozenset({"research"}), frozenset({"alice"}))
+        return Dispatcher(AgentRegistry([config]), {"a": self.agent})
+
+
 if __name__ == "__main__":
     unittest.main()

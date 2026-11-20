@@ -66,6 +66,8 @@ def create_app(dispatcher: Dispatcher, service_token: str, *, references=None, a
                 raise ValueError("invalid_task")
             task = AgentTask(task_data["task_id"], task_data["idempotency_key"], principal, tenant,
                              task_data["intent"], task_data["objective"], frozenset(caps), payload)
+            if references is not None and task.task_id in references:
+                return respond(start_response, "409 Conflict", {"error": "task_already_dispatched"})
             # Coding writes require an independently verified approval integration.
             approval = data.get("approval")
             scope = approval_verifier(principal, tenant, approval, task) if approval_verifier and approval else None

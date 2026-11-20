@@ -1,6 +1,6 @@
 {
   "name": "@xmux/contracts",
-  "version": "0.1.0-draft.5",
+  "version": "0.1.0-draft.6",
   "private": true,
   "type": "module",
   "description": "Draft XMUX v1 wire contracts; pending team approval",

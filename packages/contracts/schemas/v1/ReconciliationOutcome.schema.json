@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://xmux.example/contracts/v1/ReconciliationOutcome.schema.json",
   "title": "ReconciliationOutcome",
-  "description": "Dispatch lookup outcome. ABSENT requires authoritative evidence; an ordinary empty lookup, outage or unsupported lookup is UNKNOWN/UNSUPPORTED. No outcome alone authorizes redispatch.",
+  "description": "Dispatch lookup outcome. ABSENT requires current authoritative evidence of no prior acceptance and closure of in-flight acceptance. Missing/deleted jobs or eventually consistent empty searches are UNKNOWN, not absence proof.",
   "oneOf": [
     {
       "type": "object",
@@ -76,12 +76,24 @@
             },
             "covers_dispatch_started_at": {
               "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+            },
+            "never_accepted": {
+              "const": true
+            },
+            "acceptance_closed": {
+              "const": true
+            },
+            "valid_until": {
+              "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
             }
           },
           "required": [
             "authoritative",
             "evidence_ref",
-            "covers_dispatch_started_at"
+            "covers_dispatch_started_at",
+            "never_accepted",
+            "acceptance_closed",
+            "valid_until"
           ]
         }
       },

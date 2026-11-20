@@ -2,8 +2,8 @@
   "openapi": "3.1.1",
   "info": {
     "title": "XMUX shared contracts (draft)",
-    "version": "0.1.0-draft.5",
-    "description": "P0.2–P0.6 draft schema, HTTP, authorization and idempotency convention catalog. Empty paths are intentional: service operations and authentication bindings remain future work. This document describes no deployed service."
+    "version": "0.1.0-draft.6",
+    "description": "P0.2–P0.7 draft schema and coordination convention catalog. Empty paths are intentional: service operations and authentication bindings remain future work. This document describes no deployed service."
   },
   "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
   "paths": {},
@@ -1142,6 +1142,242 @@
           "artifacts"
         ]
       },
+      "DispatchAttempt": {
+        "title": "DispatchAttempt",
+        "description": "Persisted before network send. IDs and fingerprint identify one immutable logical dispatch; retransmission must not invent a new identity.",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1"
+          },
+          "task_id": {
+            "$ref": "#/components/schemas/Common/$defs/Uuid"
+          },
+          "task_version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "principal_id": {
+            "$ref": "#/components/schemas/Common/$defs/Uuid"
+          },
+          "tenant_id": {
+            "$ref": "#/components/schemas/Common/$defs/Uuid"
+          },
+          "agent_id": {
+            "$ref": "#/components/schemas/Common/$defs/Reference"
+          },
+          "correlation_id": {
+            "$ref": "#/components/schemas/Common/$defs/Uuid"
+          },
+          "remote_idempotency_key": {
+            "$ref": "#/components/schemas/Common/$defs/Reference"
+          },
+          "request_fingerprint": {
+            "$ref": "#/components/schemas/RequestFingerprint"
+          },
+          "started_at": {
+            "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+          }
+        },
+        "required": [
+          "schema_version",
+          "task_id",
+          "task_version",
+          "principal_id",
+          "tenant_id",
+          "agent_id",
+          "correlation_id",
+          "remote_idempotency_key",
+          "request_fingerprint",
+          "started_at"
+        ]
+      },
+      "DispatchOutcome": {
+        "title": "DispatchOutcome",
+        "description": "Normalized authenticated multiplexer observation, not an HTTP status interpretation. Verify all bindings and supporting evidence before transitioning.",
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "schema_version": {
+                "type": "string",
+                "const": "1"
+              },
+              "task_id": {
+                "$ref": "#/components/schemas/Common/$defs/Uuid"
+              },
+              "agent_id": {
+                "$ref": "#/components/schemas/Common/$defs/Reference"
+              },
+              "correlation_id": {
+                "$ref": "#/components/schemas/Common/$defs/Uuid"
+              },
+              "observed_at": {
+                "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+              },
+              "outcome": {
+                "const": "ACCEPTED"
+              },
+              "remote_ref": {
+                "$ref": "#/components/schemas/RemoteTaskRef"
+              }
+            },
+            "required": [
+              "schema_version",
+              "task_id",
+              "agent_id",
+              "correlation_id",
+              "observed_at",
+              "outcome",
+              "remote_ref"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "schema_version": {
+                "type": "string",
+                "const": "1"
+              },
+              "task_id": {
+                "$ref": "#/components/schemas/Common/$defs/Uuid"
+              },
+              "agent_id": {
+                "$ref": "#/components/schemas/Common/$defs/Reference"
+              },
+              "correlation_id": {
+                "$ref": "#/components/schemas/Common/$defs/Uuid"
+              },
+              "observed_at": {
+                "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+              },
+              "outcome": {
+                "const": "TERMINAL"
+              },
+              "result": {
+                "$ref": "#/components/schemas/RemoteResult"
+              }
+            },
+            "required": [
+              "schema_version",
+              "task_id",
+              "agent_id",
+              "correlation_id",
+              "observed_at",
+              "outcome",
+              "result"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "schema_version": {
+                "type": "string",
+                "const": "1"
+              },
+              "task_id": {
+                "$ref": "#/components/schemas/Common/$defs/Uuid"
+              },
+              "agent_id": {
+                "$ref": "#/components/schemas/Common/$defs/Reference"
+              },
+              "correlation_id": {
+                "$ref": "#/components/schemas/Common/$defs/Uuid"
+              },
+              "observed_at": {
+                "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+              },
+              "outcome": {
+                "const": "NOT_ACCEPTED"
+              },
+              "failure_class": {
+                "type": "string",
+                "enum": [
+                  "TRANSIENT",
+                  "PERMANENT"
+                ]
+              },
+              "error": {
+                "$ref": "#/components/schemas/ErrorEnvelope"
+              },
+              "evidence": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "evidence_ref": {
+                    "$ref": "#/components/schemas/Common/$defs/Reference"
+                  },
+                  "never_accepted": {
+                    "const": true
+                  },
+                  "acceptance_closed": {
+                    "const": true
+                  }
+                },
+                "required": [
+                  "evidence_ref",
+                  "never_accepted",
+                  "acceptance_closed"
+                ]
+              }
+            },
+            "required": [
+              "schema_version",
+              "task_id",
+              "agent_id",
+              "correlation_id",
+              "observed_at",
+              "outcome",
+              "failure_class",
+              "error",
+              "evidence"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "schema_version": {
+                "type": "string",
+                "const": "1"
+              },
+              "task_id": {
+                "$ref": "#/components/schemas/Common/$defs/Uuid"
+              },
+              "agent_id": {
+                "$ref": "#/components/schemas/Common/$defs/Reference"
+              },
+              "correlation_id": {
+                "$ref": "#/components/schemas/Common/$defs/Uuid"
+              },
+              "observed_at": {
+                "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+              },
+              "outcome": {
+                "const": "UNKNOWN"
+              },
+              "error": {
+                "$ref": "#/components/schemas/ErrorEnvelope"
+              }
+            },
+            "required": [
+              "schema_version",
+              "task_id",
+              "agent_id",
+              "correlation_id",
+              "observed_at",
+              "outcome",
+              "error"
+            ]
+          }
+        ]
+      },
       "ErrorCode": {
         "title": "ErrorCode",
         "description": "Closed draft v1 error vocabulary. HTTP mappings live in conventions/http.json; tests prevent drift. Codes do not authorize retries.",
@@ -1622,7 +1858,7 @@
       },
       "ReconciliationOutcome": {
         "title": "ReconciliationOutcome",
-        "description": "Dispatch lookup outcome. ABSENT requires authoritative evidence; an ordinary empty lookup, outage or unsupported lookup is UNKNOWN/UNSUPPORTED. No outcome alone authorizes redispatch.",
+        "description": "Dispatch lookup outcome. ABSENT requires current authoritative evidence of no prior acceptance and closure of in-flight acceptance. Missing/deleted jobs or eventually consistent empty searches are UNKNOWN, not absence proof.",
         "oneOf": [
           {
             "type": "object",
@@ -1696,12 +1932,24 @@
                   },
                   "covers_dispatch_started_at": {
                     "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+                  },
+                  "never_accepted": {
+                    "const": true
+                  },
+                  "acceptance_closed": {
+                    "const": true
+                  },
+                  "valid_until": {
+                    "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
                   }
                 },
                 "required": [
                   "authoritative",
                   "evidence_ref",
-                  "covers_dispatch_started_at"
+                  "covers_dispatch_started_at",
+                  "never_accepted",
+                  "acceptance_closed",
+                  "valid_until"
                 ]
               }
             },

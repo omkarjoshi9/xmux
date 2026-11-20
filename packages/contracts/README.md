@@ -1,6 +1,6 @@
 # XMUX shared contracts — draft v1
 
-P0.2–P0.6 provide language-neutral wire schemas, HTTP conventions and a generated OpenAPI component catalog. These are executable **proposals pending gateway, multiplexer and control-plane agreement**, not stable or deployed APIs.
+P0.2–P0.7 provide language-neutral wire schemas, HTTP conventions and a generated OpenAPI component catalog. These are executable **proposals pending gateway, multiplexer and control-plane agreement**, not stable or deployed APIs.
 
 ## Contents
 
@@ -45,7 +45,7 @@ The OpenAPI document intentionally has empty `paths`: it defines reusable schema
 
 ## Draft conventions
 
-- `schema_version` is the string `"1"`; schema/package revision is independently `0.1.0-draft.5`. No compatibility promise is made until team approval.
+- `schema_version` is the string `"1"`; schema/package revision is independently `0.1.0-draft.6`. No compatibility promise is made until team approval.
 - Objects reject undeclared fields, including nested auth/reply structures. New fields require coordinated producer/consumer updates; do not assume additive changes are automatically compatible.
 - XMUX IDs are UUIDs; remote/platform references are opaque nonempty strings. UTC timestamps use an explicit `Z` suffix.
 - Task states are uppercase, including approval, retry and unknown states. State legality, timestamp ordering and remote-reference requirements for particular transitions are enforced by later lifecycle services, not this structural schema.
@@ -63,7 +63,7 @@ Before these drafts are frozen, confirm identity mapping provision/lookup, tenan
 
 The event wire field is `platform_event_id`; the gateway must namespace it across bot accounts/chats when necessary. Event deduplication, payload fingerprint conflicts, user isolation, remote execution safety and content retention remain service responsibilities and later P0 contracts.
 
-Local workshop notes and implementation plans stay in ignored `plan/`; they are not dependencies of this package. Credential implementation, remote recovery agreement and shared cross-team fixture scenarios remain subsequent work.
+Local workshop notes and implementation plans stay in ignored `plan/`; they are not dependencies of this package. Credential implementation, adapter guarantee agreement and shared cross-team fixture scenarios remain subsequent work.
 
 ## Remote lifecycle semantics (P0.3)
 
@@ -87,7 +87,7 @@ REQUESTED acknowledges a cancellation request only. CONFIRMED includes confirmat
 
 ### Reconciliation and safe recovery
 
-FOUND contains the remote task reference. The receiver must compare its task, owner and correlation IDs with the lookup identity; JSON Schema cannot enforce those cross-field equalities. ABSENT requires an authoritative lookup evidence reference and the dispatch start time it covers. An eventually consistent empty search is UNKNOWN, not ABSENT. An unavailable lookup is UNKNOWN; no lookup capability is UNSUPPORTED.
+FOUND contains the remote task reference. The receiver must compare its task, owner and correlation IDs with the lookup identity; JSON Schema cannot enforce those cross-field equalities. ABSENT requires an authoritative lookup evidence reference, the covered dispatch start time, evidence expiry, and explicit claims that the attempt was never accepted and its in-flight acceptance path is closed. An eventually consistent empty search is UNKNOWN, not ABSENT. An unavailable lookup is UNKNOWN; no lookup capability is UNSUPPORTED.
 
 An authoritative flag in JSON is a claim, not proof. The service must verify the authenticated adapter's guarantee, evidence scope, principal ownership, dispatch attempt and coverage, and ensure the old in-flight request cannot later be accepted before using absence to redispatch. Lookup retention expiry invalidates negative evidence. If the adapter cannot establish that guarantee, leave the task unknown and require reconciliation/operator review. No payload includes a `safe_to_retry` shortcut.
 
@@ -127,7 +127,7 @@ Header correlation selection precedes response creation; it does not bypass auth
 | 502  | `auth_failed`, `remote_failure`                                                                                                                                |
 | 503  | `unavailable`, `remote_unavailable`                                                                                                                            |
 
-These statuses apply when the HTTP operation itself fails. A successful task-status request remains HTTP 200 even if the remote task failed. `auth_failed` describes destination credentials; it must not be confused with caller authentication. Error bodies always use ErrorEnvelope v1, even when rejecting another requested version. Unknown provider codes normalize to the closest supported code; raw upstream text is not forwarded. Local idempotency is defined in P0.6 below; remote recovery agreement remains P0.7 work.
+These statuses apply when the HTTP operation itself fails. A successful task-status request remains HTTP 200 even if the remote task failed. `auth_failed` describes destination credentials; it must not be confused with caller authentication. Error bodies always use ErrorEnvelope v1, even when rejecting another requested version. Unknown provider codes normalize to the closest supported code; raw upstream text is not forwarded. Local idempotency is defined in P0.6 below; remote recovery is specified in P0.7 below, pending adapter agreement.
 
 `violations` is required only for `validation_failed` and forbidden on other error codes. `retry_after_seconds` remains required and nullable. On 429/503, an optional `Retry-After` response uses integer seconds matching a non-null body hint; omit it when no delay is known. The hint is not retry authorization. Runtime code must enforce matching header/body values.
 
@@ -283,6 +283,63 @@ Do not automatically expire unresolved reservations or records for running, unkn
 
 A local accepted task is not proof of remote acceptance. Persist an independent stable remote dispatch correlation/idempotency reference per logical dispatch attempt. Do not pass a user key unchanged across different agents, tenants or operations and assume the agent has the same scope. Verify the adapter's actual scope and retention guarantee; once its retention window ends, its original key may no longer protect against duplicate work.
 
-Timeout after a remote send requires reconciliation or an established still-valid remote idempotency guarantee. An ACCEPTED local record, a new key, a lease timeout, or a retry-delay hint is not evidence that remote work did not start. The current multiplexer HTTP draft accepts an idempotency key but that alone does not demonstrate provider deduplication. P0.7 will define the remote acceptance/reconciliation agreement; no other service implementation is changed here.
+Timeout after a remote send requires reconciliation or an established still-valid remote idempotency guarantee. An ACCEPTED local record, a new key, a lease timeout, or a retry-delay hint is not evidence that remote work did not start. The current multiplexer HTTP draft accepts an idempotency key but that alone does not demonstrate provider deduplication. P0.7 below defines the proposed remote acceptance/reconciliation agreement; no other service implementation is changed here.
 
 Tests establish deterministic fingerprints, schema constraints and conflict-code mappings, including an independently calculated digest. They do not prove database uniqueness, crash recovery, authorization, tombstone retention, immutable-reference storage or remote duplicate prevention. Those require ledger/worker integration tests.
+
+## Remote acceptance and recovery (P0.7)
+
+This is a proposed agreement with the multiplexer owner, not confirmation that every adapter implements it. `DispatchAttempt` is persisted before sending; `DispatchOutcome` normalizes observations; `conventions/remote-recovery.json` records guarded recovery rules. The current contracts remain draft pending adapter-specific evidence and team review.
+
+### Attempt identity and acceptance
+
+A dispatch attempt binds the owning principal/tenant, task ID/version, selected agent, correlation ID, remote idempotency key, payload fingerprint and start time. Persist these before any network send. The fingerprint must cover the immutable actual agent submission, including execution constraints; the P0.6 client-request digest alone cannot cover fields added during routing. The exact agent submission schema/profile is a shared multiplexer integration decision before execution is implemented.
+
+Verify every response's task/agent/correlation against the persisted attempt and authenticated expected service. Nested RemoteTaskRef/RemoteResult identifiers must match the envelope and attempt. JSON Schema cannot compare those field values or authenticate the sender. Unexpected owners, mismatched identifiers, malformed responses and contradictory observations are quarantined for reconciliation; do not treat them as successful acceptance or conclusive rejection.
+
+`ACCEPTED` means the owning agent has durably accepted the work and supplied a verifiable remote task ID. A multiplexer merely receiving HTTP bytes, returning 2xx, enqueueing ephemeral work, or returning an empty receipt does not establish remote acceptance. Persist the reference before acknowledging the queue item. The coordination state may become RUNNING, meaning remote ownership is confirmed; the agent may still have queued the actual execution.
+
+`TERMINAL` carries a verified RemoteResult and can report immediate completion/failure/cancellation. Persist remote identity and terminal result together; no separate RUNNING notification is required. A generic transport exception, timeout, status outage or missing result is not terminal evidence.
+
+`NOT_ACCEPTED` requires authoritative evidence that this attempt was never accepted and no old request can subsequently be accepted. `failure_class` distinguishes a transient rejection eligible for bounded retry consideration from a permanent rejection that fails locally. Error code alone cannot establish either condition. An authenticated negative response from a durable gate before forwarding, or trustworthy local proof that no request was sent, may qualify; the adapter must document the exact guarantee. A network error whose send stage is uncertain does not qualify.
+
+`UNKNOWN` covers timeouts, disconnects, malformed replies and uncertain acceptance. Preserve the attempt's identity and set UNKNOWN while reconciling. There may already be live remote work. Do not create a fresh task, switch agents, create a new dispatch key, or mark execution failed solely because the request timed out.
+
+### Reconciliation outcomes
+
+- **FOUND:** verify and persist the existing remote reference, then observe its status/result through supported mechanisms. Do not submit another copy. A found receipt can restore RUNNING only if the task is nonterminal; it cannot downgrade a terminal task.
+- **ABSENT:** means this particular dispatch was never accepted, not merely that a remote task cannot currently be found. Require authenticated authoritative evidence, matching attempt/start-time coverage, `never_accepted: true`, `acceptance_closed: true`, and an unexpired `valid_until`. Verify the proof against the adapter's guarantees; booleans in a payload are not proof by themselves.
+- **UNKNOWN:** preserve uncertainty for temporary outage, eventually consistent empty search, retention gaps, expired evidence or contradictory records. Continue bounded observation or escalate for operator reconciliation.
+- **UNSUPPORTED:** the owner lacks a usable lookup interface. Preserve UNKNOWN and require operator evidence or a separately verified idempotency guarantee; never pretend a chat UI is a reconciliation interface.
+
+ABSENT cannot justify retry when prior durable acceptance, a result, or an authenticated callback shows that work started. A deleted/expired remote record after acceptance may mean execution already happened. Quarantine contradictory absence claims. A previously accepted job becomes FAILED only upon positive verified terminal failure or confirmed unrecoverable outcome under an agreed owner/operator procedure; missing status alone is insufficient.
+
+Before using absence to dispatch again, ensure the original request cannot later emerge from a proxy, queue or delayed adapter and execute. Evidence expiry, missing fencing/closure guarantees or a gap in retention invalidates the retry path. Confirm current permissions/approval, unchanged action constraints and remaining retry budget immediately before dispatch. A fresh attempt after conclusive non-acceptance gets its own persisted correlation while retaining the local task; the superseded attempt remains auditable. Retransmitting an unresolved attempt under a valid idempotency guarantee instead retains its original remote key, identity and immutable payload.
+
+### Guarded recovery behavior
+
+| Observation                                | Coordination effect                           | Side-effect policy                                       |
+| ------------------------------------------ | --------------------------------------------- | -------------------------------------------------------- |
+| Durable remote acceptance                  | RUNNING with remote reference                 | Observe the same job                                     |
+| Verified terminal result                   | SUCCEEDED, FAILED or CANCELLED                | Record once; do not resubmit                             |
+| Proven non-acceptance, transient           | RETRY_PENDING if authorized and within budget | Bounded retry only after proof verification              |
+| Proven non-acceptance, permanent           | FAILED                                        | No automatic retry                                       |
+| Ambiguous dispatch                         | UNKNOWN                                       | Reconcile; no new dispatch by default                    |
+| Authoritative absence, no prior acceptance | RETRY_PENDING if all guards pass              | Fresh attempt only after closing the old acceptance path |
+| Inconclusive/unsupported lookup            | UNKNOWN                                       | Observe or operator review                               |
+
+The convention file is descriptive policy data, not executable permission. Every rule includes its preconditions. Once local state is terminal, stale observations cannot reopen it. Conflicting terminal results require audit/review, not last-write-wins. A duplicate callback/result is idempotent. A valid callback arriving before the submission response may establish acceptance/terminal state through the same attempt identity.
+
+A same-key retransmission while unresolved is allowed only with a documented end-to-end remote deduplication guarantee for the exact principal/tenant/agent/operation and immutable payload. Confirm the guarantee remains valid for the entire possible acceptance window, not just at retry scheduling time. Deduplication in the local queue or a short-lived multiplexer cache is insufficient if a provider call can still execute twice. Unknown guarantees or retention expiry leave the attempt UNKNOWN.
+
+If a retry budget is exhausted after proven non-acceptance, the task can fail locally with that evidence. If observation/reconciliation budget is exhausted while acceptance remains uncertain, keep UNKNOWN and escalate; time spent waiting is not proof of failure. Restart, stale worker lease and HTTP 5xx are not retry authority. Cancellation requests, routine creation and delivery also require their own outcome evidence; task dispatch proofs cannot be reused as blanket guarantees for those operations.
+
+### Terminal failure and handoff evidence
+
+A remote FAILED result means the remote owner positively reports terminal failure for the exact accepted job. It does not guarantee rollback or absence of earlier side effects. A successful task whose channel delivery fails remains SUCCEEDED with a separate delivery-failure record. Cancellation is terminal only when confirmed; an acknowledgement of a cancellation request is not confirmation.
+
+Before enabling an adapter's automated recovery, require demonstration of: durable acceptance receipt; acceptance-then-lost-response lookup; never-accepted response/lookup semantics; closure of delayed in-flight acceptance; actual deduplication scope and lifetime; status/result/callback ordering; and behavior when the remote record expires. Unsupported guarantees stay explicitly unsupported. Only the adapter owner can supply this evidence; no real-agent recovery claim is made by these schema tests.
+
+### Verification boundary
+
+Tests cover complete outcome variants, required attempt identity, terminal-result shape, rejection of contradictory observations, and stronger absence evidence in standalone and generated schemas. They do not verify remote truth, identifier equality, freshness, transaction ordering, safe retries, callback races or crash recovery. The worker and adapter integration harness must test those at implementation time, especially acceptance followed by a lost response and a delayed original request arriving after reconciliation.

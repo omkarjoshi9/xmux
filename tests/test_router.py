@@ -24,6 +24,16 @@ class RouterTests(unittest.TestCase):
         with self.assertRaises(RoutingError):
             select_agent(RoutingRequest(C.CODING), self.agents)
 
+    def test_all_required_capabilities_must_match(self):
+        agents = [
+            Agent("research", frozenset({C.RESEARCH}), preference=10),
+            Agent("both", frozenset({C.RESEARCH, C.SCHEDULING})),
+        ]
+        request = RoutingRequest(C.RESEARCH, additional_capabilities=frozenset({C.SCHEDULING}))
+        self.assertEqual(select_agent(request, agents).agent.id, "both")
+        with self.assertRaises(RoutingError):
+            select_agent(RoutingRequest(C.RESEARCH, "research", frozenset({C.SCHEDULING})), agents)
+
 
 if __name__ == "__main__":
     unittest.main()

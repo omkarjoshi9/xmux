@@ -23,6 +23,7 @@ class Agent:
 class RoutingRequest:
     capability: Capability
     target_id: Optional[str] = None
+    additional_capabilities: frozenset[Capability] = frozenset()
 
 
 @dataclass(frozen=True)
@@ -38,15 +39,16 @@ class RoutingError(ValueError):
 def select_agent(request: RoutingRequest, agents: Iterable[Agent]) -> RouteDecision:
     """Select authorized, capable, healthy agent; explicit invalid targets never fall back."""
     candidates = tuple(agents)
+    required = request.additional_capabilities | {request.capability}
     if request.target_id is not None:
         matches = [a for a in candidates if a.id == request.target_id]
         if len(matches) != 1:
             raise RoutingError(f"explicit target {request.target_id!r} is missing or ambiguous")
         agent = matches[0]
-        if not agent.authorized or request.capability not in agent.capabilities or not agent.healthy:
+        if not agent.authorized or not required.issubset(agent.capabilities) or not agent.healthy:
             raise RoutingError(f"explicit target {request.target_id!r} is not eligible")
         return RouteDecision(agent, True)
-    eligible = [a for a in candidates if a.authorized and a.healthy and request.capability in a.capabilities]
+    eligible = [a for a in candidates if a.authorized and a.healthy and required.issubset(a.capabilities)]
     if not eligible:
         raise RoutingError(f"no eligible agent for {request.capability.value}")
     return RouteDecision(sorted(eligible, key=lambda a: (-a.preference, a.id))[0], False)

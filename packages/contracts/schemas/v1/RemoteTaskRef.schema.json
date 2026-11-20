@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmux.example/contracts/v1/RemoteTaskRef.schema.json",
+  "title": "RemoteTaskRef",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1"
+    },
+    "task_id": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+    },
+    "agent_id": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+    },
+    "remote_task_id": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+    },
+    "correlation_id": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+    },
+    "accepted_at": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+    }
+  },
+  "required": [
+    "schema_version",
+    "task_id",
+    "agent_id",
+    "remote_task_id",
+    "correlation_id",
+    "accepted_at"
+  ]
+}

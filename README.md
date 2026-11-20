@@ -86,6 +86,11 @@ The first milestone is a complete loop: capture a request, delegate it to an age
 
 Setup instructions and integration guides will arrive alongside the working release.
 
+## Architecture and development plans
+
+- [XMUX project architecture](docs/XMUX_Project_Architecture.md)
+- [Dev 2 agent multiplexer plan — Swayam](docs/DEV2_AGENT_MULTIPLEXER_PLAN.md)
+
 ## Contributing
 
 Ideas, bug reports, and integration proposals are welcome through [GitHub Issues](https://github.com/omkarjoshi9/xmux/issues). For a new integration, describe the supported API or CLI, available permissions, and the workflow it would enable.

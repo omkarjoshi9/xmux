@@ -5,11 +5,11 @@ import json
 from dataclasses import asdict
 from typing import Callable
 
-from .contracts import AgentTask
-from .dispatch import DispatchContext, Dispatcher, UnknownDispatch
+from .contracts import AgentTask, PersistedTaskReference
+from .dispatch import DispatchContext, Dispatcher, UnknownDispatch, ApprovedCodingScope
 
 
-def create_app(dispatcher: Dispatcher, service_token: str) -> Callable:
+def create_app(dispatcher: Dispatcher, service_token: str, *, references=None, approval_verifier=None) -> Callable:
     if not service_token:
         raise ValueError("service_token_required")
 
@@ -37,6 +37,21 @@ def create_app(dispatcher: Dispatcher, service_token: str) -> Callable:
                     {"agent_id": c.agent_id, "capabilities": sorted(c.operations)}
                     for c in configs
                 ]})
+            if path == "/internal/agents/status" or path == "/internal/agents/results":
+                if method != "POST":
+                    return respond(start_response, "405 Method Not Allowed", {"error":"method_not_allowed"})
+                if references is None:
+                    return respond(start_response, "503 Service Unavailable", {"error":"reference_store_unavailable"})
+                key = data.get("task_id")
+                ref = references.get(key)
+                if ref is None:
+                    return respond(start_response, "404 Not Found", {"error":"unknown_task"})
+                context = DispatchContext(principal, tenant)
+                if path.endswith("/status"):
+                    state = dispatcher.status(ref, context)
+                    return respond(start_response, "200 OK", {"task_id":key,"state":state.value})
+                result = dispatcher.result(ref, context)
+                return respond(start_response, "200 OK", {"task_id":key,"result":asdict(result) if result else None})
             if path != "/internal/agents/dispatch" or method != "POST":
                 return respond(start_response, "404 Not Found", {"error": "not_found"})
             task_data = data["task"]
@@ -52,7 +67,14 @@ def create_app(dispatcher: Dispatcher, service_token: str) -> Callable:
             task = AgentTask(task_data["task_id"], task_data["idempotency_key"], principal, tenant,
                              task_data["intent"], task_data["objective"], frozenset(caps), payload)
             # Coding writes require an independently verified approval integration.
-            receipt = dispatcher.submit(task, DispatchContext(principal, tenant), data.get("requested_agent"))
+            approval = data.get("approval")
+            scope = approval_verifier(principal, tenant, approval, task) if approval_verifier and approval else None
+            if task.intent == "code_change" and scope is None:
+                return respond(start_response, "403 Forbidden", {"error":"approval_required"})
+            receipt = dispatcher.submit(task, DispatchContext(principal, tenant, scope), data.get("requested_agent"))
+            ref = PersistedTaskReference(receipt.agent_id, receipt.remote_task_id, tenant, principal)
+            if references is not None:
+                references[task.task_id] = ref
             result = asdict(receipt)
             result["state"] = receipt.state.value
             return respond(start_response, "200 OK", result)

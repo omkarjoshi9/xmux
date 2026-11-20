@@ -43,6 +43,7 @@ class RemoteTaskReceipt:
 class AgentResult:
     state: AgentState
     result_refs: tuple[str, ...] = ()
+    output: str | None = None
 
 
 class AgentAdapter(Protocol):

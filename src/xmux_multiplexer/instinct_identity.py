@@ -7,7 +7,7 @@ from typing import Callable
 
 
 class InstinctRecipientStore:
-    def __init__(self, database: str, authorize_change: Callable[[str, str, str], bool]):
+    def __init__(self, database: str, authorize_change: Callable[[str, str, str, str], bool]):
         if not database or database == ":memory:":
             raise ValueError("durable_database_required")
         self.database = database
@@ -29,7 +29,7 @@ class InstinctRecipientStore:
         address = parseaddr(recipient)[1].lower()
         if not address or "@" not in address or address != recipient.strip().lower():
             raise ValueError("instinct_recipient_invalid")
-        if not self._authorize_change(tenant, principal, proof):
+        if not self._authorize_change(tenant, principal, address, proof):
             raise PermissionError("identity_mapping_forbidden")
         with closing(sqlite3.connect(self.database, timeout=10)) as db, db:
             db.execute(

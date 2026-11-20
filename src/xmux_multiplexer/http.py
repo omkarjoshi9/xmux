@@ -10,13 +10,14 @@ from uuid import UUID
 from .contracts import AgentCapabilities, AgentTask, PersistedTaskReference
 from .dispatch import DispatchContext, Dispatcher, UnknownDispatch, ApprovedCodingScope
 from .dispatch_ledger import DispatchConflict, DispatchInProgress
+from .introspection import IntrospectionUnavailable
 from .wire import capabilities_to_wire, receipt_to_wire
 
 
 def create_app(dispatcher: Dispatcher, service_token: str, *, references=None, approval_verifier=None,
                openbot=None, grokbot=None, dispatch_ledger=None, authorize_principal=None, verify_delegation=None,
                schema_validator=None, orchestrator_service_id=None, audience="multiplexer",
-               resolve_reference=None) -> Callable:
+               resolve_reference=None, instinct_recipients=None) -> Callable:
     if not service_token:
         raise ValueError("service_token_required")
 
@@ -36,10 +37,18 @@ def create_app(dispatcher: Dispatcher, service_token: str, *, references=None, a
             tenant = data["tenant_id"]
             if not isinstance(principal, str) or not principal.strip() or not isinstance(tenant, str) or not tenant.strip():
                 raise ValueError("invalid_identity")
-            if authorize_principal is None or not authorize_principal(principal, tenant, data):
-                return respond(start_response, "403 Forbidden", {"error": "forbidden"})
             path = environ.get("PATH_INFO")
             method = environ.get("REQUEST_METHOD")
+            if authorize_principal is None or not authorize_principal(principal, tenant, data, path, method):
+                return respond(start_response, "403 Forbidden", {"error": "forbidden"})
+            if path == "/internal/agents/instinct/identity" and method == "POST":
+                if instinct_recipients is None:
+                    return respond(start_response, "503 Service Unavailable", {"error": "unavailable"})
+                recipient, proof = data.get("recipient"), data.get("identity_proof")
+                if not isinstance(recipient, str) or not isinstance(proof, str):
+                    raise ValueError("invalid_identity_request")
+                instinct_recipients.set(tenant, principal, recipient, proof)
+                return respond(start_response, "200 OK", {"state": "configured"})
             if path == "/internal/agents/list" and method == "POST":
                 configs = dispatcher.registry.discover_configs(principal, tenant_id=tenant)
                 return respond(start_response, "200 OK", {"agents": [
@@ -231,6 +240,8 @@ def create_app(dispatcher: Dispatcher, service_token: str, *, references=None, a
                 # as a safe validation failure or silently submit it again.
                 raise UnknownDispatch(task.task_id) from exc
             return respond(start_response, "200 OK", result)
+        except IntrospectionUnavailable:
+            return respond(start_response, "503 Service Unavailable", {"error": "unavailable"})
         except DispatchConflict:
             return respond(start_response, "409 Conflict", {"error": "idempotency_conflict"})
         except DispatchInProgress:

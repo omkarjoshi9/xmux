@@ -143,14 +143,16 @@ class Dispatcher:
             if adapter is None or adapter.id != config.agent_id:
                 continue
             try:
-                if (required.issubset(adapter.capabilities().operations)
-                        and self._call(adapter.id, adapter.health) == "healthy"):
-                    available.append(adapter)
+                if not required.issubset(adapter.capabilities().operations):
+                    continue
+                health = self._call(adapter.id, adapter.health)
+                if health in ("healthy", "degraded"):
+                    available.append((health, adapter))
             except Exception:
                 continue
         if not available:
             raise LookupError("no_capable_agent")
-        adapter = min(available, key=lambda agent: agent.id)
+        _, adapter = min(available, key=lambda candidate: (candidate[0] != "healthy", candidate[1].id))
         try:
             try:
                 return self._call(adapter.id, lambda: adapter.submit(task))

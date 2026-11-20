@@ -1,6 +1,6 @@
 # XMUX shared contracts — draft v1
 
-P0.2–P0.7 provide language-neutral wire schemas, HTTP conventions and a generated OpenAPI component catalog. These are executable **proposals pending gateway, multiplexer and control-plane agreement**, not stable or deployed APIs.
+P0 provides language-neutral wire schemas, HTTP conventions and a generated OpenAPI component catalog. These are executable **proposals pending gateway, multiplexer and control-plane agreement**, not stable or deployed APIs.
 
 ## Contents
 
@@ -41,11 +41,11 @@ npm test
 
 Edit source JSON Schemas, then regenerate `openapi.json`. Do not edit the generated file. The committed lockfile pins validation dependencies. The schemas use [JSON Schema draft 2020-12 as supported by Ajv](https://ajv.js.org/json-schema.html); the catalog uses [OpenAPI 3.1.1](https://spec.openapis.org/oas/v3.1.1.html).
 
-The OpenAPI document intentionally has empty `paths`: it defines reusable schemas, parameters, headers and error responses. Service operations and transport authentication bindings remain future work. No dispatch or delivery endpoint is implemented here.
+The OpenAPI document now includes draft endpoint paths, request/response schemas, examples, scopes and service ownership from `conventions/api.json`. URLs use non-deployed `.example.invalid` placeholders. The bearer security scheme documents required credential verification; it does not implement an authentication provider or scope enforcement. No production endpoint is implemented here.
 
 ## Draft conventions
 
-- `schema_version` is the string `"1"`; schema/package revision is independently `0.1.0-draft.6`. No compatibility promise is made until team approval.
+- `schema_version` is the string `"1"`; schema/package revision is independently `0.1.0-draft.7`. No compatibility promise is made until team approval.
 - Objects reject undeclared fields, including nested auth/reply structures. New fields require coordinated producer/consumer updates; do not assume additive changes are automatically compatible.
 - XMUX IDs are UUIDs; remote/platform references are opaque nonempty strings. UTC timestamps use an explicit `Z` suffix.
 - Task states are uppercase, including approval, retry and unknown states. State legality, timestamp ordering and remote-reference requirements for particular transitions are enforced by later lifecycle services, not this structural schema.
@@ -63,7 +63,7 @@ Before these drafts are frozen, confirm identity mapping provision/lookup, tenan
 
 The event wire field is `platform_event_id`; the gateway must namespace it across bot accounts/chats when necessary. Event deduplication, payload fingerprint conflicts, user isolation, remote execution safety and content retention remain service responsibilities and later P0 contracts.
 
-Local workshop notes and implementation plans stay in ignored `plan/`; they are not dependencies of this package. Credential implementation, adapter guarantee agreement and shared cross-team fixture scenarios remain subsequent work.
+Local workshop notes and implementation plans stay in ignored `plan/`; they are not dependencies of this package. Shared fixtures and endpoint proposals are now included. Credential implementation and adapter guarantee agreement remain external/implementation requirements.
 
 ## Remote lifecycle semantics (P0.3)
 
@@ -269,7 +269,7 @@ Context, content and artifact references must identify immutable/versioned snaps
 
 A uniqueness constraint plus transactional conflict handling must choose one winner across concurrent requests. The winning transaction ties the scope/fingerprint to the resource and durable outbox. A process dying before commit leaves no accepted task; a process dying after commit must recover that same task. If a separate committed RESERVED state exists, reconciliation must establish whether its resource/outbox already exists before resuming it. Lease expiry alone cannot authorize remote execution.
 
-The task/event creation endpoints should return HTTP 202 for new durable acceptance and HTTP 200 for an accepted replay. Approval decisions return HTTP 200 once persisted, including authorized replays; delivery submission returns HTTP 202 for local acceptance and HTTP 200 for replay of that receipt. These are draft endpoint semantics; concrete success response envelopes remain pending API work. Replay responses may reflect newer status and refreshed HTTP correlation IDs, but stable resource identity must not change.
+The task/event creation endpoints should return HTTP 202 for new durable acceptance and HTTP 200 for an accepted replay. Approval decisions return HTTP 200 once persisted, including authorized replays; delivery submission returns HTTP 202 for local acceptance and HTTP 200 for replay of that receipt. Concrete success response envelopes are now included in the P0 endpoint proposals; handlers remain future work. Replay responses may reflect newer status and refreshed HTTP correlation IDs, but stable resource identity must not change.
 
 Every replay rechecks present caller authentication, ownership and reference visibility before disclosing the stored result. An accepted approval replay reports the recorded decision without reapplying it; a newly requested decision still checks current expiry/action policy. A lost response, a new HTTP correlation ID, a restarted worker or a failed remote task does not create a new logical request.
 
@@ -343,3 +343,56 @@ Before enabling an adapter's automated recovery, require demonstration of: durab
 ### Verification boundary
 
 Tests cover complete outcome variants, required attempt identity, terminal-result shape, rejection of contradictory observations, and stronger absence evidence in standalone and generated schemas. They do not verify remote truth, identifier equality, freshness, transaction ordering, safe retries, callback races or crash recovery. The worker and adapter integration harness must test those at implementation time, especially acceptance followed by a lost response and a delayed original request arriving after reconciliation.
+
+## Shared fixtures and API handoff (P0.8–P0.9)
+
+The P0 implementation artifacts are prepared: schemas, generated OpenAPI endpoint proposals, reusable fixtures, executable offline response stubs, tests and a CI workflow. Team review/sign-off remains pending; this is not a frozen cross-team contract or a running control plane.
+
+### Use the shared suite
+
+```bash
+cd packages/contracts
+npm ci
+npm run check
+npm run stub -- valid-task
+npm run stub -- unknown-dispatch
+npm run stub -- duplicate-event
+```
+
+`npm run check` verifies generated-file freshness and runs every contract test. The stub prints a deterministic `{mock, scenario, status, expected_policy, body}` response from the fixture manifest. It opens no listener, authenticates no user, creates no ledger entries, and performs no dispatch. It is an executable API response stub for early consumer development. The HTTP mock integration harness, durable queue and real service behavior belong to subsequent implementation phases.
+
+`fixtures/manifest.json` identifies each fixture's schema and expected structural validity, plus scenario inputs, responses, HTTP statuses and expected future service behavior. All root schemas have a positive example. Negative examples cover missing required event/task fields, unsupported versions and injected identity. Scenarios cover valid intake, duplicate event replay, changed key payload, cross-user status denial, unsupported scheduling, unknown dispatch, successful completion and delivery receipt. Fingerprint pairs test repeated events and changed requests. Dates are fixed at the manifest's simulation time; they are test data, not currently valid credentials.
+
+Schema-valid unauthorized/ambiguous inputs are intentional: authorization and evidence checks happen after structural validation. Tests verify fixtures and response shapes, not the expected policy itself. `behavior_verified_by: future_service_integration_tests` prevents confusing a scripted response with an enforced authorization/recovery result. Any future service harness must execute these scenarios against its implementation and assert the expected behavior. Opaque references/digests in illustrative records are synthetic placeholders unless a fingerprint case explicitly computes them.
+
+### Endpoint proposals and service ownership
+
+`conventions/api.json` feeds OpenAPI generation. It covers event/task intake, task list/status/result/cancel, approval decisions, agent discovery/health, dispatch and delivery. Correlation and pagination conventions are reused. `TaskReceipt`, `EventReceipt`, `ApprovalReceipt`, `DeliveryReceipt`, `TaskResult`, `AgentList`, `AgentHealth` and `DispatchRequest` complete the handoff shapes.
+
+The same catalog describes separate services using per-operation server placeholders. Gateway delivery and multiplexer dispatch/health must remain private and authenticated; listing them here does not make them public. `/v1/dispatch` and `/v1/deliveries` are the focused work-order proposals. The multiplexer prototype currently uses `/internal/agents/dispatch` and a different listing interface. **That route/envelope mapping remains pending owner agreement; these are not claimed drop-in-compatible interfaces.** Keep adapter-specific translation in the agreed boundary, not in silently duplicated service logic.
+
+DispatchRequest carries a persisted attempt, the originating TaskRequest, and a bounded DelegationContext. At runtime compare task/version/principal/tenant/agent/correlation/action bindings and verify the grant; shape checks alone cannot enforce equality. Execution-specific coding constraints and their canonical fingerprint profile still require the multiplexer/approval implementation agreement before code-changing dispatch is enabled. The current schema is sufficient for the research/mock handoff, not proof of safe repository-write execution.
+
+Path task IDs must match approval body task IDs. Cancellation HTTP 202 returns current TaskStatus; it means the request was accepted, not that remote cancellation succeeded. Dispatch HTTP 200 can contain UNKNOWN. DeliveryReceipt ACCEPTED proves only gateway receipt, not successful channel posting. EventReceipt.task_ids is empty when a valid captured event has not created executable work. The MCP transport follows its own protocol and is not falsely modeled as a JSON REST endpoint; its tool mapping uses the same core contracts when implemented.
+
+### CI and required review policy
+
+`.github/workflows/contracts.yml` runs `npm ci` and `npm run check` for pull requests with read-only repository permissions and pinned action revisions. The named check is `contracts` under workflow `Shared contracts`. Every developer consuming shared contracts must pass this suite plus their own adapter/module tests before integration. Package-lock changes and generated OpenAPI updates belong in the same PR as schema changes.
+
+Repository maintainers must mark the contracts check as required in branch protection/rulesets if enforcement is desired; this work does not modify repository protection settings. CI proves shared-contract consistency only. It does not certify each developer's currently unmerged module, platform permission, credential integration or production readiness.
+
+### Decision and acceptance record
+
+| Area                                   | Current proposal                                                         | Review status / owner                                           |
+| -------------------------------------- | ------------------------------------------------------------------------ | --------------------------------------------------------------- |
+| IDs, UTC, version, task states         | UUID XMUX IDs, UTC Z timestamps, string v1, uppercase shared task states | Draft; all module owners                                        |
+| Event identity and field names         | Focused work-order envelope plus server-resolved active mapping          | Draft; gateway + control plane                                  |
+| Dispatch/delivery routes and envelopes | `/v1/dispatch`, `/v1/deliveries`; adapter boundary mapping required      | Pending; multiplexer + gateway                                  |
+| Authorization                          | Caller/effective-principal separation, explicit scopes, bounded grants   | Pending credentials and approval integration; all owners        |
+| Local idempotency                      | Tenant/principal/operation/key tuple; versioned JCS/SHA-256              | Draft; all owners; retention periods pending                    |
+| Remote recovery                        | Evidence-based acceptance/absence, default UNKNOWN, no blind retries     | Pending adapter guarantee demonstrations; multiplexer           |
+| Approval and coding constraints        | Bind exact action/version/repository/branch/tools before dispatch        | Pending canonical execution schema; control plane + multiplexer |
+| Contract tooling                       | Package-local Node validation; language-neutral JSON artifacts           | Ready for use; does not choose backend framework                |
+| CI and fixtures                        | Shared suite and offline response stubs                                  | Local checks run; all teams still need module integration runs  |
+
+Completion boundary: P0 preparation and implementation artifacts are delivered. The day-one workshop and formal agreement cannot be inferred from code existing; no teammate approval is recorded. Ownership remains unchanged. The next phase can scaffold owned infrastructure against these drafts, while integration-dependent service behavior must wait for the affected contract decisions. No production service, remote credential, schedule or deployment is created by P0.

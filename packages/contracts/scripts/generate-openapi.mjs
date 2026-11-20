@@ -125,19 +125,127 @@ const responses = Object.fromEntries(
   }),
 );
 
+const api = JSON.parse(
+  await readFile(new URL("conventions/api.json", root), "utf8"),
+);
+const fixtureManifest = JSON.parse(
+  await readFile(new URL("fixtures/manifest.json", root), "utf8"),
+);
+const examples = {};
+for (const fixture of fixtureManifest.fixtures.filter((item) => item.valid)) {
+  examples[fixture.id] = {
+    summary: `${fixture.schema}: ${fixture.category}`,
+    value: JSON.parse(
+      await readFile(new URL(`fixtures/${fixture.path}`, root), "utf8"),
+    ),
+  };
+}
+const paths = {};
+for (const operation of api.operations) {
+  const response = {
+    description: "Draft contract response; no deployed service is implied.",
+    headers: {
+      "X-Correlation-ID": { $ref: "#/components/headers/CorrelationId" },
+    },
+    content: {
+      "application/json": { schema: pointer(operation.response_schema) },
+    },
+  };
+  const operationParameters = [
+    { $ref: "#/components/parameters/CorrelationId" },
+  ];
+  if (operation.path.includes("{id}"))
+    operationParameters.push({
+      name: "id",
+      in: "path",
+      required: true,
+      schema: commonPointer("Uuid"),
+    });
+  if (operation.path.includes("{agent_id}"))
+    operationParameters.push({
+      name: "agent_id",
+      in: "path",
+      required: true,
+      schema: commonPointer("Reference"),
+    });
+  if (operation.operation_id === "task.list")
+    operationParameters.push(
+      ...["PageLimit", "PageCursor", "TaskStatusFilter"].map((name) => ({
+        $ref: `#/components/parameters/${name}`,
+      })),
+    );
+  const entry = {
+    operationId: operation.operation_id,
+    summary: `Draft ${operation.operation_id}`,
+    "x-service": operation.service,
+    "x-required-scope": operation.scope,
+    "x-policy-operation": operation.policy_operation,
+    description:
+      "Proposed contract only. Service authentication, scope, ownership, approval and idempotency enforcement must be implemented separately. Cancellation acceptance is not confirmed cancellation; dispatch HTTP 200 can carry UNKNOWN.",
+    servers: [
+      {
+        url: `https://${operation.service}.example.invalid`,
+        description:
+          "Documentation placeholder; internal services must not be exposed publicly.",
+      },
+    ],
+    security: [{ VerifiedBearer: [] }],
+    parameters: operationParameters,
+    responses: {
+      ...Object.fromEntries(
+        statuses.map((status) => [
+          String(status),
+          { $ref: `#/components/responses/Error${status}` },
+        ]),
+      ),
+      [String(operation.success_status)]: response,
+    },
+  };
+  if (
+    operation.success_status === 202 &&
+    operation.operation_id !== "task.cancel"
+  )
+    entry.responses["200"] = {
+      ...response,
+      description:
+        "Authorized replay of the original resource; no new side effect.",
+    };
+  if (operation.request_schema)
+    entry.requestBody = {
+      required: true,
+      content: {
+        "application/json": { schema: pointer(operation.request_schema) },
+      },
+    };
+  paths[operation.path] ??= {};
+  paths[operation.path][operation.method] = entry;
+}
+const packageInfo = JSON.parse(
+  await readFile(new URL("package.json", root), "utf8"),
+);
+
 const output =
   JSON.stringify(
     {
       openapi: "3.1.1",
       info: {
         title: "XMUX shared contracts (draft)",
-        version: "0.1.0-draft.6",
+        version: packageInfo.version,
         description:
-          "P0.2–P0.7 draft schema and coordination convention catalog. Empty paths are intentional: service operations and authentication bindings remain future work. This document describes no deployed service.",
+          "P0 draft schemas, endpoint proposals and shared examples. Bearer verification and scope enforcement require service implementation; this document describes no deployed service.",
       },
       jsonSchemaDialect: "https://json-schema.org/draft/2020-12/schema",
-      paths: {},
+      paths,
       components: {
+        examples,
+        securitySchemes: {
+          VerifiedBearer: {
+            type: "http",
+            scheme: "bearer",
+            description:
+              "Credential validation, issuer, audience and scope configuration are pending deployment decisions. No token format is implied.",
+          },
+        },
         parameters,
         headers,
         responses,

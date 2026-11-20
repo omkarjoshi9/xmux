@@ -2,12 +2,1718 @@
   "openapi": "3.1.1",
   "info": {
     "title": "XMUX shared contracts (draft)",
-    "version": "0.1.0-draft.6",
-    "description": "P0.2–P0.7 draft schema and coordination convention catalog. Empty paths are intentional: service operations and authentication bindings remain future work. This document describes no deployed service."
+    "version": "0.1.0-draft.7",
+    "description": "P0 draft schemas, endpoint proposals and shared examples. Bearer verification and scope enforcement require service implementation; this document describes no deployed service."
   },
   "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
-  "paths": {},
+  "paths": {
+    "/v1/events": {
+      "post": {
+        "operationId": "event.ingest",
+        "summary": "Draft event.ingest",
+        "x-service": "orchestrator",
+        "x-required-scope": "events:ingest",
+        "x-policy-operation": "event.ingest",
+        "description": "Proposed contract only. Service authentication, scope, ownership, approval and idempotency enforcement must be implemented separately. Cancellation acceptance is not confirmed cancellation; dispatch HTTP 200 can carry UNKNOWN.",
+        "servers": [
+          {
+            "url": "https://orchestrator.example.invalid",
+            "description": "Documentation placeholder; internal services must not be exposed publicly."
+          }
+        ],
+        "security": [
+          {
+            "VerifiedBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized replay of the original resource; no new side effect.",
+            "headers": {
+              "X-Correlation-ID": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventReceipt"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Draft contract response; no deployed service is implied.",
+            "headers": {
+              "X-Correlation-ID": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventReceipt"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "502": {
+            "$ref": "#/components/responses/Error502"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventEnvelope"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/tasks": {
+      "post": {
+        "operationId": "task.create",
+        "summary": "Draft task.create",
+        "x-service": "orchestrator",
+        "x-required-scope": "tasks:create",
+        "x-policy-operation": "task.create",
+        "description": "Proposed contract only. Service authentication, scope, ownership, approval and idempotency enforcement must be implemented separately. Cancellation acceptance is not confirmed cancellation; dispatch HTTP 200 can carry UNKNOWN.",
+        "servers": [
+          {
+            "url": "https://orchestrator.example.invalid",
+            "description": "Documentation placeholder; internal services must not be exposed publicly."
+          }
+        ],
+        "security": [
+          {
+            "VerifiedBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized replay of the original resource; no new side effect.",
+            "headers": {
+              "X-Correlation-ID": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskReceipt"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Draft contract response; no deployed service is implied.",
+            "headers": {
+              "X-Correlation-ID": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskReceipt"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "502": {
+            "$ref": "#/components/responses/Error502"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskRequest"
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "task.list",
+        "summary": "Draft task.list",
+        "x-service": "orchestrator",
+        "x-required-scope": "tasks:read",
+        "x-policy-operation": "task.read",
+        "description": "Proposed contract only. Service authentication, scope, ownership, approval and idempotency enforcement must be implemented separately. Cancellation acceptance is not confirmed cancellation; dispatch HTTP 200 can carry UNKNOWN.",
+        "servers": [
+          {
+            "url": "https://orchestrator.example.invalid",
+            "description": "Documentation placeholder; internal services must not be exposed publicly."
+          }
+        ],
+        "security": [
+          {
+            "VerifiedBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/PageLimit"
+          },
+          {
+            "$ref": "#/components/parameters/PageCursor"
+          },
+          {
+            "$ref": "#/components/parameters/TaskStatusFilter"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Draft contract response; no deployed service is implied.",
+            "headers": {
+              "X-Correlation-ID": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "502": {
+            "$ref": "#/components/responses/Error502"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        }
+      }
+    },
+    "/v1/tasks/{id}": {
+      "get": {
+        "operationId": "task.read",
+        "summary": "Draft task.read",
+        "x-service": "orchestrator",
+        "x-required-scope": "tasks:read",
+        "x-policy-operation": "task.read",
+        "description": "Proposed contract only. Service authentication, scope, ownership, approval and idempotency enforcement must be implemented separately. Cancellation acceptance is not confirmed cancellation; dispatch HTTP 200 can carry UNKNOWN.",
+        "servers": [
+          {
+            "url": "https://orchestrator.example.invalid",
+            "description": "Documentation placeholder; internal services must not be exposed publicly."
+          }
+        ],
+        "security": [
+          {
+            "VerifiedBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Common/$defs/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Draft contract response; no deployed service is implied.",
+            "headers": {
+              "X-Correlation-ID": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskStatus"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "502": {
+            "$ref": "#/components/responses/Error502"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        }
+      }
+    },
+    "/v1/tasks/{id}/result": {
+      "get": {
+        "operationId": "task.result",
+        "summary": "Draft task.result",
+        "x-service": "orchestrator",
+        "x-required-scope": "tasks:read",
+        "x-policy-operation": "task.read",
+        "description": "Proposed contract only. Service authentication, scope, ownership, approval and idempotency enforcement must be implemented separately. Cancellation acceptance is not confirmed cancellation; dispatch HTTP 200 can carry UNKNOWN.",
+        "servers": [
+          {
+            "url": "https://orchestrator.example.invalid",
+            "description": "Documentation placeholder; internal services must not be exposed publicly."
+          }
+        ],
+        "security": [
+          {
+            "VerifiedBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Common/$defs/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Draft contract response; no deployed service is implied.",
+            "headers": {
+              "X-Correlation-ID": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "502": {
+            "$ref": "#/components/responses/Error502"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        }
+      }
+    },
+    "/v1/tasks/{id}/cancel": {
+      "post": {
+        "operationId": "task.cancel",
+        "summary": "Draft task.cancel",
+        "x-service": "orchestrator",
+        "x-required-scope": "tasks:cancel",
+        "x-policy-operation": "task.cancel",
+        "description": "Proposed contract only. Service authentication, scope, ownership, approval and idempotency enforcement must be implemented separately. Cancellation acceptance is not confirmed cancellation; dispatch HTTP 200 can carry UNKNOWN.",
+        "servers": [
+          {
+            "url": "https://orchestrator.example.invalid",
+            "description": "Documentation placeholder; internal services must not be exposed publicly."
+          }
+        ],
+        "security": [
+          {
+            "VerifiedBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Common/$defs/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Draft contract response; no deployed service is implied.",
+            "headers": {
+              "X-Correlation-ID": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskStatus"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "502": {
+            "$ref": "#/components/responses/Error502"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        }
+      }
+    },
+    "/v1/tasks/{id}/approve": {
+      "post": {
+        "operationId": "approval.decide",
+        "summary": "Draft approval.decide",
+        "x-service": "orchestrator",
+        "x-required-scope": "approvals:decide",
+        "x-policy-operation": "approval.decide",
+        "description": "Proposed contract only. Service authentication, scope, ownership, approval and idempotency enforcement must be implemented separately. Cancellation acceptance is not confirmed cancellation; dispatch HTTP 200 can carry UNKNOWN.",
+        "servers": [
+          {
+            "url": "https://orchestrator.example.invalid",
+            "description": "Documentation placeholder; internal services must not be exposed publicly."
+          }
+        ],
+        "security": [
+          {
+            "VerifiedBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Common/$defs/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Draft contract response; no deployed service is implied.",
+            "headers": {
+              "X-Correlation-ID": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalReceipt"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "502": {
+            "$ref": "#/components/responses/Error502"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApprovalRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/agents": {
+      "get": {
+        "operationId": "agent.list",
+        "summary": "Draft agent.list",
+        "x-service": "multiplexer",
+        "x-required-scope": "agents:read",
+        "x-policy-operation": "agent.list",
+        "description": "Proposed contract only. Service authentication, scope, ownership, approval and idempotency enforcement must be implemented separately. Cancellation acceptance is not confirmed cancellation; dispatch HTTP 200 can carry UNKNOWN.",
+        "servers": [
+          {
+            "url": "https://multiplexer.example.invalid",
+            "description": "Documentation placeholder; internal services must not be exposed publicly."
+          }
+        ],
+        "security": [
+          {
+            "VerifiedBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Draft contract response; no deployed service is implied.",
+            "headers": {
+              "X-Correlation-ID": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentList"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "502": {
+            "$ref": "#/components/responses/Error502"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        }
+      }
+    },
+    "/v1/dispatch": {
+      "post": {
+        "operationId": "task.dispatch",
+        "summary": "Draft task.dispatch",
+        "x-service": "multiplexer",
+        "x-required-scope": "tasks:dispatch",
+        "x-policy-operation": "task.dispatch",
+        "description": "Proposed contract only. Service authentication, scope, ownership, approval and idempotency enforcement must be implemented separately. Cancellation acceptance is not confirmed cancellation; dispatch HTTP 200 can carry UNKNOWN.",
+        "servers": [
+          {
+            "url": "https://multiplexer.example.invalid",
+            "description": "Documentation placeholder; internal services must not be exposed publicly."
+          }
+        ],
+        "security": [
+          {
+            "VerifiedBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Draft contract response; no deployed service is implied.",
+            "headers": {
+              "X-Correlation-ID": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DispatchOutcome"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "502": {
+            "$ref": "#/components/responses/Error502"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DispatchRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/deliveries": {
+      "post": {
+        "operationId": "delivery.submit",
+        "summary": "Draft delivery.submit",
+        "x-service": "gateway",
+        "x-required-scope": "deliveries:submit",
+        "x-policy-operation": "delivery.submit",
+        "description": "Proposed contract only. Service authentication, scope, ownership, approval and idempotency enforcement must be implemented separately. Cancellation acceptance is not confirmed cancellation; dispatch HTTP 200 can carry UNKNOWN.",
+        "servers": [
+          {
+            "url": "https://gateway.example.invalid",
+            "description": "Documentation placeholder; internal services must not be exposed publicly."
+          }
+        ],
+        "security": [
+          {
+            "VerifiedBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized replay of the original resource; no new side effect.",
+            "headers": {
+              "X-Correlation-ID": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryReceipt"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Draft contract response; no deployed service is implied.",
+            "headers": {
+              "X-Correlation-ID": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryReceipt"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "502": {
+            "$ref": "#/components/responses/Error502"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeliveryRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/agents/{agent_id}/health": {
+      "get": {
+        "operationId": "agent.health",
+        "summary": "Draft agent.health",
+        "x-service": "multiplexer",
+        "x-required-scope": "agents:read",
+        "x-policy-operation": "agent.list",
+        "description": "Proposed contract only. Service authentication, scope, ownership, approval and idempotency enforcement must be implemented separately. Cancellation acceptance is not confirmed cancellation; dispatch HTTP 200 can carry UNKNOWN.",
+        "servers": [
+          {
+            "url": "https://multiplexer.example.invalid",
+            "description": "Documentation placeholder; internal services must not be exposed publicly."
+          }
+        ],
+        "security": [
+          {
+            "VerifiedBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          },
+          {
+            "name": "agent_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Common/$defs/Reference"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Draft contract response; no deployed service is implied.",
+            "headers": {
+              "X-Correlation-ID": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentHealth"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "502": {
+            "$ref": "#/components/responses/Error502"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        }
+      }
+    }
+  },
   "components": {
+    "examples": {
+      "event": {
+        "summary": "EventEnvelope: valid",
+        "value": {
+          "schema_version": "1",
+          "event_id": "39b5ee0b-6ecf-4ef8-8953-a34a8272ec90",
+          "platform": "telegram",
+          "platform_event_id": "bot_1:chat_42:msg_7",
+          "event_type": "direct_message",
+          "occurred_at": "2026-11-21T12:00:00Z",
+          "actor_external_id": "user_123",
+          "tenant_id": "44331ef6-b679-4ecb-bd83-fef7d89d25cd",
+          "text": "Research the supplied claim",
+          "urls": [
+            "https://example.org/post"
+          ],
+          "attachments": [],
+          "reply_target": {
+            "channel_id": "chat_42",
+            "message_id": "msg_7"
+          },
+          "auth_context": {
+            "identity_mapping_ref": "mapping_123"
+          }
+        }
+      },
+      "task-request": {
+        "summary": "TaskRequest: valid",
+        "value": {
+          "schema_version": "1",
+          "idempotency_key": "telegram:chat_42:msg_7:research",
+          "source_event_id": "39b5ee0b-6ecf-4ef8-8953-a34a8272ec90",
+          "intent": "research",
+          "requested_agent": "hermes",
+          "objective": "Investigate the supplied claim",
+          "context_refs": [
+            "content_abc"
+          ],
+          "reply_target_ref": "reply_123"
+        }
+      },
+      "remote-task": {
+        "summary": "RemoteTaskRef: valid",
+        "value": {
+          "schema_version": "1",
+          "task_id": "70d82b26-1b1f-459b-93e1-a3c772663488",
+          "agent_id": "hermes",
+          "remote_task_id": "remote_job_1",
+          "correlation_id": "d5c1bb6a-0ca0-4687-a348-48f736b27f74",
+          "accepted_at": "2026-11-21T12:00:00Z"
+        }
+      },
+      "task-status": {
+        "summary": "TaskStatus: valid",
+        "value": {
+          "schema_version": "1",
+          "task_id": "70d82b26-1b1f-459b-93e1-a3c772663488",
+          "status": "SUCCEEDED",
+          "assigned_agent": "hermes",
+          "remote_task_id": "remote_job_1",
+          "created_at": "2026-11-21T12:00:00Z",
+          "updated_at": "2026-11-21T12:00:00Z",
+          "error_code": null,
+          "result_refs": [
+            "result_1"
+          ]
+        }
+      },
+      "delivery-request": {
+        "summary": "DeliveryRequest: valid",
+        "value": {
+          "schema_version": "1",
+          "task_id": "70d82b26-1b1f-459b-93e1-a3c772663488",
+          "idempotency_key": "completion_1",
+          "channel": "telegram",
+          "reply_target": {
+            "channel_id": "chat_42",
+            "message_id": "msg_7"
+          },
+          "text": "Research complete",
+          "artifacts": [
+            "result_1"
+          ]
+        }
+      },
+      "approval-request": {
+        "summary": "ApprovalRequest: valid",
+        "value": {
+          "schema_version": "1",
+          "approval_id": "c6b57247-4ce1-438f-b41d-b6712b2a894b",
+          "task_id": "70d82b26-1b1f-459b-93e1-a3c772663488",
+          "decision": "approve",
+          "action_fingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "idempotency_key": "approval_1"
+        }
+      },
+      "routine": {
+        "summary": "RoutineRef: valid",
+        "value": {
+          "schema_version": "1",
+          "routine_id": "c6b57247-4ce1-438f-b41d-b6712b2a894b",
+          "owner_agent_id": "hermes",
+          "remote_schedule_ref": "schedule_1",
+          "state": "ACTIVE",
+          "created_at": "2026-11-21T12:00:00Z",
+          "last_verified_at": "2026-11-21T12:00:00Z"
+        }
+      },
+      "error": {
+        "summary": "ErrorEnvelope: valid",
+        "value": {
+          "schema_version": "1",
+          "code": "remote_failure",
+          "message": "Example contract response",
+          "correlation_id": "d5c1bb6a-0ca0-4687-a348-48f736b27f74",
+          "retry_after_seconds": null
+        }
+      },
+      "error-code": {
+        "summary": "ErrorCode: valid",
+        "value": "remote_failure"
+      },
+      "capabilities": {
+        "summary": "AgentCapabilities: valid",
+        "value": {
+          "schema_version": "1",
+          "agent_id": "hermes",
+          "operations": [
+            "research"
+          ],
+          "supports_status": true,
+          "supports_cancel": false,
+          "supports_schedule": false,
+          "supports_memory_lookup": false,
+          "supports_callbacks": false,
+          "supports_correlation_lookup": false,
+          "dispatch_idempotency": {
+            "supported": false
+          }
+        }
+      },
+      "remote-result": {
+        "summary": "RemoteResult: valid",
+        "value": {
+          "schema_version": "1",
+          "remote_ref": {
+            "schema_version": "1",
+            "task_id": "70d82b26-1b1f-459b-93e1-a3c772663488",
+            "agent_id": "hermes",
+            "remote_task_id": "remote_job_1",
+            "correlation_id": "d5c1bb6a-0ca0-4687-a348-48f736b27f74",
+            "accepted_at": "2026-11-21T12:00:00Z"
+          },
+          "finished_at": "2026-11-21T12:00:00Z",
+          "status": "SUCCEEDED",
+          "result_refs": [
+            "result_1"
+          ]
+        }
+      },
+      "callback": {
+        "summary": "TaskCallback: valid",
+        "value": {
+          "schema_version": "1",
+          "callback_id": "39b5ee0b-6ecf-4ef8-8953-a34a8272ec90",
+          "emitted_at": "2026-11-21T12:00:00Z",
+          "sequence": 1,
+          "kind": "result",
+          "result": {
+            "schema_version": "1",
+            "remote_ref": {
+              "schema_version": "1",
+              "task_id": "70d82b26-1b1f-459b-93e1-a3c772663488",
+              "agent_id": "hermes",
+              "remote_task_id": "remote_job_1",
+              "correlation_id": "d5c1bb6a-0ca0-4687-a348-48f736b27f74",
+              "accepted_at": "2026-11-21T12:00:00Z"
+            },
+            "finished_at": "2026-11-21T12:00:00Z",
+            "status": "SUCCEEDED",
+            "result_refs": [
+              "result_1"
+            ]
+          }
+        }
+      },
+      "cancellation": {
+        "summary": "CancellationReceipt: valid",
+        "value": {
+          "schema_version": "1",
+          "cancellation_id": "c6b57247-4ce1-438f-b41d-b6712b2a894b",
+          "remote_ref": {
+            "schema_version": "1",
+            "task_id": "70d82b26-1b1f-459b-93e1-a3c772663488",
+            "agent_id": "hermes",
+            "remote_task_id": "remote_job_1",
+            "correlation_id": "d5c1bb6a-0ca0-4687-a348-48f736b27f74",
+            "accepted_at": "2026-11-21T12:00:00Z"
+          },
+          "observed_at": "2026-11-21T12:00:00Z",
+          "outcome": "UNSUPPORTED",
+          "error": {
+            "schema_version": "1",
+            "code": "cancellation_unsupported",
+            "message": "Example contract response",
+            "correlation_id": "d5c1bb6a-0ca0-4687-a348-48f736b27f74",
+            "retry_after_seconds": null
+          }
+        }
+      },
+      "reconciliation": {
+        "summary": "ReconciliationOutcome: valid",
+        "value": {
+          "schema_version": "1",
+          "task_id": "70d82b26-1b1f-459b-93e1-a3c772663488",
+          "agent_id": "hermes",
+          "correlation_id": "d5c1bb6a-0ca0-4687-a348-48f736b27f74",
+          "checked_at": "2026-11-21T12:00:00Z",
+          "outcome": "UNKNOWN",
+          "error": {
+            "schema_version": "1",
+            "code": "remote_outcome_unknown",
+            "message": "Example contract response",
+            "correlation_id": "d5c1bb6a-0ca0-4687-a348-48f736b27f74",
+            "retry_after_seconds": null
+          }
+        }
+      },
+      "field-violation": {
+        "summary": "FieldViolation: valid",
+        "value": {
+          "path": "/objective",
+          "reason": "required"
+        }
+      },
+      "task-list-query": {
+        "summary": "TaskListQuery: valid",
+        "value": {
+          "limit": 20,
+          "status": "SUCCEEDED"
+        }
+      },
+      "task-page": {
+        "summary": "TaskPage: valid",
+        "value": {
+          "schema_version": "1",
+          "items": [
+            {
+              "schema_version": "1",
+              "task_id": "70d82b26-1b1f-459b-93e1-a3c772663488",
+              "status": "SUCCEEDED",
+              "assigned_agent": "hermes",
+              "remote_task_id": "remote_job_1",
+              "created_at": "2026-11-21T12:00:00Z",
+              "updated_at": "2026-11-21T12:00:00Z",
+              "error_code": null,
+              "result_refs": [
+                "result_1"
+              ]
+            }
+          ],
+          "next_cursor": null
+        }
+      },
+      "actor": {
+        "summary": "AuthenticatedActor: valid",
+        "value": {
+          "schema_version": "1",
+          "audience": "orchestrator",
+          "authenticated_at": "2026-11-21T12:00:00Z",
+          "expires_at": "2026-11-21T12:05:00Z",
+          "actor_type": "USER",
+          "subject_ref": "subject_1",
+          "tenant_id": "44331ef6-b679-4ecb-bd83-fef7d89d25cd",
+          "principal_id": "733a6e4b-468b-42c6-b5ec-3e23284ad2ae",
+          "scopes": [
+            "tasks:read",
+            "tasks:create"
+          ]
+        }
+      },
+      "authorization-scope": {
+        "summary": "AuthorizationScope: valid",
+        "value": "tasks:read"
+      },
+      "identity-mapping": {
+        "summary": "IdentityMapping: valid",
+        "value": {
+          "schema_version": "1",
+          "identity_mapping_ref": "mapping_123",
+          "gateway_service_id": "gateway_1",
+          "platform": "telegram",
+          "actor_external_id": "user_123",
+          "tenant_id": "44331ef6-b679-4ecb-bd83-fef7d89d25cd",
+          "principal_id": "733a6e4b-468b-42c6-b5ec-3e23284ad2ae",
+          "verified_at": "2026-11-21T12:00:00Z",
+          "state": "ACTIVE"
+        }
+      },
+      "delegation": {
+        "summary": "DelegationContext: valid",
+        "value": {
+          "schema_version": "1",
+          "grant_id": "c6b57247-4ce1-438f-b41d-b6712b2a894b",
+          "actor_service_id": "orchestrator_1",
+          "audience": "multiplexer",
+          "tenant_id": "44331ef6-b679-4ecb-bd83-fef7d89d25cd",
+          "principal_id": "733a6e4b-468b-42c6-b5ec-3e23284ad2ae",
+          "task_id": "70d82b26-1b1f-459b-93e1-a3c772663488",
+          "task_version": 1,
+          "agent_id": "hermes",
+          "scope": "tasks:dispatch",
+          "action_fingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "approval_refs": [],
+          "issued_at": "2026-11-21T12:00:00Z",
+          "expires_at": "2026-11-21T12:05:00Z"
+        }
+      },
+      "idempotency-scope": {
+        "summary": "IdempotencyScope: valid",
+        "value": {
+          "schema_version": "1",
+          "tenant_id": "44331ef6-b679-4ecb-bd83-fef7d89d25cd",
+          "principal_id": "733a6e4b-468b-42c6-b5ec-3e23284ad2ae",
+          "operation": "task.create",
+          "idempotency_key": "telegram:chat_42:msg_7:research"
+        }
+      },
+      "request-fingerprint": {
+        "summary": "RequestFingerprint: valid",
+        "value": {
+          "profile": "xmux-jcs-sha256-v1",
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      },
+      "idempotency-record": {
+        "summary": "IdempotencyRecord: valid",
+        "value": {
+          "schema_version": "1",
+          "scope": {
+            "schema_version": "1",
+            "tenant_id": "44331ef6-b679-4ecb-bd83-fef7d89d25cd",
+            "principal_id": "733a6e4b-468b-42c6-b5ec-3e23284ad2ae",
+            "operation": "task.create",
+            "idempotency_key": "telegram:chat_42:msg_7:research"
+          },
+          "fingerprint": {
+            "profile": "xmux-jcs-sha256-v1",
+            "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "created_at": "2026-11-21T12:00:00Z",
+          "state": "ACCEPTED",
+          "resource_ref": "70d82b26-1b1f-459b-93e1-a3c772663488"
+        }
+      },
+      "dispatch-attempt": {
+        "summary": "DispatchAttempt: valid",
+        "value": {
+          "schema_version": "1",
+          "task_id": "70d82b26-1b1f-459b-93e1-a3c772663488",
+          "task_version": 1,
+          "tenant_id": "44331ef6-b679-4ecb-bd83-fef7d89d25cd",
+          "principal_id": "733a6e4b-468b-42c6-b5ec-3e23284ad2ae",
+          "agent_id": "hermes",
+          "correlation_id": "d5c1bb6a-0ca0-4687-a348-48f736b27f74",
+          "remote_idempotency_key": "dispatch_1",
+          "request_fingerprint": {
+            "profile": "xmux-jcs-sha256-v1",
+            "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "started_at": "2026-11-21T12:00:00Z"
+        }
+      },
+      "dispatch-outcome": {
+        "summary": "DispatchOutcome: valid",
+        "value": {
+          "schema_version": "1",
+          "task_id": "70d82b26-1b1f-459b-93e1-a3c772663488",
+          "agent_id": "hermes",
+          "correlation_id": "d5c1bb6a-0ca0-4687-a348-48f736b27f74",
+          "observed_at": "2026-11-21T12:00:00Z",
+          "outcome": "ACCEPTED",
+          "remote_ref": {
+            "schema_version": "1",
+            "task_id": "70d82b26-1b1f-459b-93e1-a3c772663488",
+            "agent_id": "hermes",
+            "remote_task_id": "remote_job_1",
+            "correlation_id": "d5c1bb6a-0ca0-4687-a348-48f736b27f74",
+            "accepted_at": "2026-11-21T12:00:00Z"
+          }
+        }
+      },
+      "event-receipt": {
+        "summary": "EventReceipt: valid",
+        "value": {
+          "schema_version": "1",
+          "event_id": "39b5ee0b-6ecf-4ef8-8953-a34a8272ec90",
+          "task_ids": [
+            "70d82b26-1b1f-459b-93e1-a3c772663488"
+          ]
+        }
+      },
+      "queued-task": {
+        "summary": "TaskReceipt: valid",
+        "value": {
+          "schema_version": "1",
+          "task_id": "70d82b26-1b1f-459b-93e1-a3c772663488",
+          "status": "QUEUED",
+          "assigned_agent": null
+        }
+      },
+      "delivery-receipt": {
+        "summary": "DeliveryReceipt: valid",
+        "value": {
+          "schema_version": "1",
+          "delivery_id": "delivery_1",
+          "status": "ACCEPTED"
+        }
+      },
+      "approval-receipt": {
+        "summary": "ApprovalReceipt: valid",
+        "value": {
+          "schema_version": "1",
+          "approval_id": "c6b57247-4ce1-438f-b41d-b6712b2a894b",
+          "task_id": "70d82b26-1b1f-459b-93e1-a3c772663488",
+          "decision": "approve"
+        }
+      },
+      "get-result": {
+        "summary": "TaskResult: valid",
+        "value": {
+          "schema_version": "1",
+          "task_id": "70d82b26-1b1f-459b-93e1-a3c772663488",
+          "result_refs": [
+            "result_1"
+          ]
+        }
+      },
+      "agents": {
+        "summary": "AgentList: valid",
+        "value": {
+          "schema_version": "1",
+          "agents": [
+            {
+              "schema_version": "1",
+              "agent_id": "hermes",
+              "operations": [
+                "research"
+              ],
+              "supports_status": true,
+              "supports_cancel": false,
+              "supports_schedule": false,
+              "supports_memory_lookup": false,
+              "supports_callbacks": false,
+              "supports_correlation_lookup": false,
+              "dispatch_idempotency": {
+                "supported": false
+              }
+            }
+          ]
+        }
+      },
+      "dispatch-request": {
+        "summary": "DispatchRequest: valid",
+        "value": {
+          "schema_version": "1",
+          "attempt": {
+            "schema_version": "1",
+            "task_id": "70d82b26-1b1f-459b-93e1-a3c772663488",
+            "task_version": 1,
+            "tenant_id": "44331ef6-b679-4ecb-bd83-fef7d89d25cd",
+            "principal_id": "733a6e4b-468b-42c6-b5ec-3e23284ad2ae",
+            "agent_id": "hermes",
+            "correlation_id": "d5c1bb6a-0ca0-4687-a348-48f736b27f74",
+            "remote_idempotency_key": "dispatch_1",
+            "request_fingerprint": {
+              "profile": "xmux-jcs-sha256-v1",
+              "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "started_at": "2026-11-21T12:00:00Z"
+          },
+          "task": {
+            "schema_version": "1",
+            "idempotency_key": "telegram:chat_42:msg_7:research",
+            "source_event_id": "39b5ee0b-6ecf-4ef8-8953-a34a8272ec90",
+            "intent": "research",
+            "requested_agent": "hermes",
+            "objective": "Investigate the supplied claim",
+            "context_refs": [
+              "content_abc"
+            ],
+            "reply_target_ref": "reply_123"
+          },
+          "delegation": {
+            "schema_version": "1",
+            "grant_id": "c6b57247-4ce1-438f-b41d-b6712b2a894b",
+            "actor_service_id": "orchestrator_1",
+            "audience": "multiplexer",
+            "tenant_id": "44331ef6-b679-4ecb-bd83-fef7d89d25cd",
+            "principal_id": "733a6e4b-468b-42c6-b5ec-3e23284ad2ae",
+            "task_id": "70d82b26-1b1f-459b-93e1-a3c772663488",
+            "task_version": 1,
+            "agent_id": "hermes",
+            "scope": "tasks:dispatch",
+            "action_fingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "approval_refs": [],
+            "issued_at": "2026-11-21T12:00:00Z",
+            "expires_at": "2026-11-21T12:05:00Z"
+          }
+        }
+      },
+      "duplicate-event": {
+        "summary": "EventEnvelope: duplicate",
+        "value": {
+          "schema_version": "1",
+          "event_id": "b5a0c7ce-f3b6-4c9a-8189-5d510e208c33",
+          "platform": "telegram",
+          "platform_event_id": "bot_1:chat_42:msg_7",
+          "event_type": "direct_message",
+          "occurred_at": "2026-11-21T12:00:00Z",
+          "actor_external_id": "user_123",
+          "tenant_id": "44331ef6-b679-4ecb-bd83-fef7d89d25cd",
+          "text": "Research the supplied claim",
+          "urls": [
+            "https://example.org/post"
+          ],
+          "attachments": [],
+          "reply_target": {
+            "channel_id": "chat_42",
+            "message_id": "msg_7"
+          },
+          "auth_context": {
+            "identity_mapping_ref": "mapping_123"
+          }
+        }
+      },
+      "changed-request": {
+        "summary": "TaskRequest: conflict",
+        "value": {
+          "schema_version": "1",
+          "idempotency_key": "telegram:chat_42:msg_7:research",
+          "source_event_id": "39b5ee0b-6ecf-4ef8-8953-a34a8272ec90",
+          "intent": "research",
+          "requested_agent": "hermes",
+          "objective": "Different action",
+          "context_refs": [
+            "content_abc"
+          ],
+          "reply_target_ref": "reply_123"
+        }
+      },
+      "other-user": {
+        "summary": "AuthenticatedActor: unauthorized",
+        "value": {
+          "schema_version": "1",
+          "audience": "orchestrator",
+          "authenticated_at": "2026-11-21T12:00:00Z",
+          "expires_at": "2026-11-21T12:05:00Z",
+          "actor_type": "USER",
+          "subject_ref": "subject_1",
+          "tenant_id": "44331ef6-b679-4ecb-bd83-fef7d89d25cd",
+          "principal_id": "b5a0c7ce-f3b6-4c9a-8189-5d510e208c33",
+          "scopes": [
+            "tasks:read",
+            "tasks:create"
+          ]
+        }
+      },
+      "unknown-dispatch": {
+        "summary": "DispatchOutcome: ambiguous",
+        "value": {
+          "schema_version": "1",
+          "task_id": "70d82b26-1b1f-459b-93e1-a3c772663488",
+          "agent_id": "hermes",
+          "correlation_id": "d5c1bb6a-0ca0-4687-a348-48f736b27f74",
+          "observed_at": "2026-11-21T12:00:00Z",
+          "outcome": "UNKNOWN",
+          "error": {
+            "schema_version": "1",
+            "code": "remote_outcome_unknown",
+            "message": "Example contract response",
+            "correlation_id": "d5c1bb6a-0ca0-4687-a348-48f736b27f74",
+            "retry_after_seconds": null
+          }
+        }
+      },
+      "error-validation_failed": {
+        "summary": "ErrorEnvelope: response",
+        "value": {
+          "schema_version": "1",
+          "code": "validation_failed",
+          "message": "Example contract response",
+          "correlation_id": "d5c1bb6a-0ca0-4687-a348-48f736b27f74",
+          "retry_after_seconds": null,
+          "violations": [
+            {
+              "path": "/objective",
+              "reason": "required"
+            }
+          ]
+        }
+      },
+      "error-unsupported_schema_version": {
+        "summary": "ErrorEnvelope: response",
+        "value": {
+          "schema_version": "1",
+          "code": "unsupported_schema_version",
+          "message": "Example contract response",
+          "correlation_id": "d5c1bb6a-0ca0-4687-a348-48f736b27f74",
+          "retry_after_seconds": null
+        }
+      },
+      "error-forbidden": {
+        "summary": "ErrorEnvelope: response",
+        "value": {
+          "schema_version": "1",
+          "code": "forbidden",
+          "message": "Example contract response",
+          "correlation_id": "d5c1bb6a-0ca0-4687-a348-48f736b27f74",
+          "retry_after_seconds": null
+        }
+      },
+      "error-not_found": {
+        "summary": "ErrorEnvelope: response",
+        "value": {
+          "schema_version": "1",
+          "code": "not_found",
+          "message": "Example contract response",
+          "correlation_id": "d5c1bb6a-0ca0-4687-a348-48f736b27f74",
+          "retry_after_seconds": null
+        }
+      },
+      "error-unsupported_capability": {
+        "summary": "ErrorEnvelope: response",
+        "value": {
+          "schema_version": "1",
+          "code": "unsupported_capability",
+          "message": "Example contract response",
+          "correlation_id": "d5c1bb6a-0ca0-4687-a348-48f736b27f74",
+          "retry_after_seconds": null
+        }
+      },
+      "error-idempotency_conflict": {
+        "summary": "ErrorEnvelope: response",
+        "value": {
+          "schema_version": "1",
+          "code": "idempotency_conflict",
+          "message": "Example contract response",
+          "correlation_id": "d5c1bb6a-0ca0-4687-a348-48f736b27f74",
+          "retry_after_seconds": null
+        }
+      },
+      "error-remote_outcome_unknown": {
+        "summary": "ErrorEnvelope: response",
+        "value": {
+          "schema_version": "1",
+          "code": "remote_outcome_unknown",
+          "message": "Example contract response",
+          "correlation_id": "d5c1bb6a-0ca0-4687-a348-48f736b27f74",
+          "retry_after_seconds": null
+        }
+      },
+      "unsupported-schedule": {
+        "summary": "TaskRequest: unsupported",
+        "value": {
+          "schema_version": "1",
+          "idempotency_key": "telegram:chat_42:msg_7:research",
+          "source_event_id": "39b5ee0b-6ecf-4ef8-8953-a34a8272ec90",
+          "intent": "schedule",
+          "requested_agent": "hermes",
+          "objective": "Create a weekly routine",
+          "context_refs": [
+            "content_abc"
+          ],
+          "reply_target_ref": "reply_123"
+        }
+      },
+      "agent-health": {
+        "summary": "AgentHealth: valid",
+        "value": {
+          "schema_version": "1",
+          "agent_id": "hermes",
+          "status": "healthy",
+          "checked_at": "2026-11-21T12:00:00Z"
+        }
+      }
+    },
+    "securitySchemes": {
+      "VerifiedBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Credential validation, issuer, audience and scope configuration are pending deployment decisions. No token format is implied."
+      }
+    },
     "parameters": {
       "CorrelationId": {
         "name": "X-Correlation-ID",
@@ -547,6 +2253,86 @@
           "supports_callbacks",
           "supports_correlation_lookup",
           "dispatch_idempotency"
+        ]
+      },
+      "AgentHealth": {
+        "title": "AgentHealth",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "const": "1"
+          },
+          "agent_id": {
+            "$ref": "#/components/schemas/Common/$defs/Reference"
+          },
+          "status": {
+            "enum": [
+              "healthy",
+              "degraded",
+              "offline"
+            ]
+          },
+          "checked_at": {
+            "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+          }
+        },
+        "required": [
+          "schema_version",
+          "agent_id",
+          "status",
+          "checked_at"
+        ]
+      },
+      "AgentList": {
+        "title": "AgentList",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1"
+          },
+          "agents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentCapabilities"
+            },
+            "maxItems": 100
+          }
+        },
+        "required": [
+          "schema_version",
+          "agents"
+        ]
+      },
+      "ApprovalReceipt": {
+        "title": "ApprovalReceipt",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1"
+          },
+          "approval_id": {
+            "$ref": "#/components/schemas/Common/$defs/Uuid"
+          },
+          "task_id": {
+            "$ref": "#/components/schemas/Common/$defs/Uuid"
+          },
+          "decision": {
+            "enum": [
+              "approve",
+              "deny"
+            ]
+          }
+        },
+        "required": [
+          "schema_version",
+          "approval_id",
+          "task_id",
+          "decision"
         ]
       },
       "ApprovalRequest": {
@@ -1093,6 +2879,28 @@
           "expires_at"
         ]
       },
+      "DeliveryReceipt": {
+        "title": "DeliveryReceipt",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1"
+          },
+          "delivery_id": {
+            "$ref": "#/components/schemas/Common/$defs/Reference"
+          },
+          "status": {
+            "const": "ACCEPTED"
+          }
+        },
+        "required": [
+          "schema_version",
+          "delivery_id",
+          "status"
+        ]
+      },
       "DeliveryRequest": {
         "title": "DeliveryRequest",
         "type": "object",
@@ -1378,6 +3186,32 @@
           }
         ]
       },
+      "DispatchRequest": {
+        "title": "DispatchRequest",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1"
+          },
+          "attempt": {
+            "$ref": "#/components/schemas/DispatchAttempt"
+          },
+          "task": {
+            "$ref": "#/components/schemas/TaskRequest"
+          },
+          "delegation": {
+            "$ref": "#/components/schemas/DelegationContext"
+          }
+        },
+        "required": [
+          "schema_version",
+          "attempt",
+          "task",
+          "delegation"
+        ]
+      },
       "ErrorCode": {
         "title": "ErrorCode",
         "description": "Closed draft v1 error vocabulary. HTTP mappings live in conventions/http.json; tests prevent drift. Codes do not authorize retries.",
@@ -1577,6 +3411,32 @@
           "attachments",
           "reply_target",
           "auth_context"
+        ]
+      },
+      "EventReceipt": {
+        "title": "EventReceipt",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1"
+          },
+          "event_id": {
+            "$ref": "#/components/schemas/Common/$defs/Uuid"
+          },
+          "task_ids": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Common/$defs/Uuid"
+            },
+            "maxItems": 100
+          }
+        },
+        "required": [
+          "schema_version",
+          "event_id",
+          "task_ids"
         ]
       },
       "FieldViolation": {
@@ -2389,6 +4249,39 @@
           "next_cursor"
         ]
       },
+      "TaskReceipt": {
+        "title": "TaskReceipt",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1"
+          },
+          "task_id": {
+            "$ref": "#/components/schemas/Common/$defs/Uuid"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Common/$defs/TaskState"
+          },
+          "assigned_agent": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Common/$defs/Reference"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "schema_version",
+          "task_id",
+          "status",
+          "assigned_agent"
+        ]
+      },
       "TaskRequest": {
         "title": "TaskRequest",
         "type": "object",
@@ -2444,6 +4337,33 @@
           "intent",
           "objective",
           "context_refs"
+        ]
+      },
+      "TaskResult": {
+        "title": "TaskResult",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1"
+          },
+          "task_id": {
+            "$ref": "#/components/schemas/Common/$defs/Uuid"
+          },
+          "result_refs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Common/$defs/Reference"
+            },
+            "maxItems": 100,
+            "minItems": 1
+          }
+        },
+        "required": [
+          "schema_version",
+          "task_id",
+          "result_refs"
         ]
       },
       "TaskStatus": {

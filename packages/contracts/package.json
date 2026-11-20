@@ -1,0 +1,18 @@
+{
+  "name": "@xmux/contracts",
+  "version": "0.1.0-draft.5",
+  "private": true,
+  "type": "module",
+  "description": "Draft XMUX v1 wire contracts; pending team approval",
+  "scripts": {
+    "generate": "node scripts/generate-openapi.mjs",
+    "check:generated": "node scripts/generate-openapi.mjs --check",
+    "test": "node --test test/*.test.mjs"
+  },
+  "devDependencies": {
+    "@apidevtools/swagger-parser": "13.1.0",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
+    "canonicalize": "5.1.0"
+  }
+}

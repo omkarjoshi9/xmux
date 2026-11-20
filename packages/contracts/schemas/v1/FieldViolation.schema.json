@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmux.example/contracts/v1/FieldViolation.schema.json",
+  "title": "FieldViolation",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "path": {
+      "type": "string",
+      "maxLength": 1024,
+      "pattern": "^(?:/(?:[^~/]|~[01])*)*$",
+      "description": "RFC 6901 pointer relative to the validated input; empty string denotes root. Do not echo untrusted property names; point to nearest declared ancestor."
+    },
+    "reason": {
+      "type": "string",
+      "enum": [
+        "required",
+        "type",
+        "format",
+        "enum",
+        "const",
+        "additional_property",
+        "min_length",
+        "max_length",
+        "minimum",
+        "maximum",
+        "pattern",
+        "min_items",
+        "max_items",
+        "unique_items",
+        "variant"
+      ]
+    }
+  },
+  "required": [
+    "path",
+    "reason"
+  ]
+}

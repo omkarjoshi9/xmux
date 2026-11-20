@@ -1,0 +1,109 @@
+{
+  "schema_version": "1",
+  "errors": {
+    "malformed_json": {
+      "http_status": 400,
+      "description": "Body is not valid JSON."
+    },
+    "unsupported_schema_version": {
+      "http_status": 400,
+      "description": "A present string schema version is not supported."
+    },
+    "invalid_request": {
+      "http_status": 400,
+      "description": "Malformed query, header, path or request framing."
+    },
+    "invalid_cursor": {
+      "http_status": 400,
+      "description": "Cursor is invalid, expired or incompatible with this authorized query."
+    },
+    "unauthenticated": {
+      "http_status": 401,
+      "description": "Caller authentication is absent or invalid."
+    },
+    "forbidden": {
+      "http_status": 403,
+      "description": "Caller lacks permission for the operation."
+    },
+    "not_found": {
+      "http_status": 404,
+      "description": "Resource does not exist or is not visible to this caller."
+    },
+    "idempotency_conflict": {
+      "http_status": 409,
+      "description": "The scoped idempotency key has conflicting input."
+    },
+    "invalid_state_transition": {
+      "http_status": 409,
+      "description": "Requested transition conflicts with current state."
+    },
+    "approval_required": {
+      "http_status": 409,
+      "description": "The requested action requires approval."
+    },
+    "approval_expired": {
+      "http_status": 409,
+      "description": "The relevant approval is expired."
+    },
+    "result_pending": {
+      "http_status": 409,
+      "description": "The task has no available terminal result yet."
+    },
+    "remote_outcome_unknown": {
+      "http_status": 409,
+      "description": "Remote acceptance or outcome cannot be established."
+    },
+    "payload_too_large": {
+      "http_status": 413,
+      "description": "Request exceeds configured byte limit."
+    },
+    "unsupported_media_type": {
+      "http_status": 415,
+      "description": "The request media type is unsupported."
+    },
+    "validation_failed": {
+      "http_status": 422,
+      "description": "The parsed supported-version payload violates its schema."
+    },
+    "unsupported_capability": {
+      "http_status": 422,
+      "description": "The selected agent cannot perform the requested operation."
+    },
+    "cancellation_unsupported": {
+      "http_status": 422,
+      "description": "The owner does not support remote cancellation."
+    },
+    "content_unavailable": {
+      "http_status": 422,
+      "description": "Authorized source content could not be obtained."
+    },
+    "rate_limited": {
+      "http_status": 429,
+      "description": "The caller has exceeded a rate limit."
+    },
+    "internal_error": {
+      "http_status": 500,
+      "description": "Unexpected local failure; details are withheld."
+    },
+    "auth_failed": {
+      "http_status": 502,
+      "description": "Destination authentication failed; caller credentials are not implicated."
+    },
+    "remote_failure": {
+      "http_status": 502,
+      "description": "Remote operation failed definitively."
+    },
+    "unavailable": {
+      "http_status": 503,
+      "description": "A required service or eligible agent is unavailable."
+    },
+    "remote_unavailable": {
+      "http_status": 503,
+      "description": "Remote service/status is temporarily unreachable."
+    },
+    "request_in_progress": {
+      "http_status": 409,
+      "description": "An authorized request with this key and fingerprint has an unresolved local reservation. No new work is created."
+    }
+  }
+}

@@ -1,6 +1,6 @@
 # XMUX shared contracts — draft v1
 
-P0.2–P0.5 provide language-neutral wire schemas, HTTP conventions and a generated OpenAPI component catalog. These are executable **proposals pending gateway, multiplexer and control-plane agreement**, not stable or deployed APIs.
+P0.2–P0.6 provide language-neutral wire schemas, HTTP conventions and a generated OpenAPI component catalog. These are executable **proposals pending gateway, multiplexer and control-plane agreement**, not stable or deployed APIs.
 
 ## Contents
 
@@ -45,7 +45,7 @@ The OpenAPI document intentionally has empty `paths`: it defines reusable schema
 
 ## Draft conventions
 
-- `schema_version` is the string `"1"`; schema/package revision is independently `0.1.0-draft.4`. No compatibility promise is made until team approval.
+- `schema_version` is the string `"1"`; schema/package revision is independently `0.1.0-draft.5`. No compatibility promise is made until team approval.
 - Objects reject undeclared fields, including nested auth/reply structures. New fields require coordinated producer/consumer updates; do not assume additive changes are automatically compatible.
 - XMUX IDs are UUIDs; remote/platform references are opaque nonempty strings. UTC timestamps use an explicit `Z` suffix.
 - Task states are uppercase, including approval, retry and unknown states. State legality, timestamp ordering and remote-reference requirements for particular transitions are enforced by later lifecycle services, not this structural schema.
@@ -63,7 +63,7 @@ Before these drafts are frozen, confirm identity mapping provision/lookup, tenan
 
 The event wire field is `platform_event_id`; the gateway must namespace it across bot accounts/chats when necessary. Event deduplication, payload fingerprint conflicts, user isolation, remote execution safety and content retention remain service responsibilities and later P0 contracts.
 
-Local workshop notes and implementation plans stay in ignored `plan/`; they are not dependencies of this package. Credential implementation, idempotency semantics and shared cross-team fixture scenarios remain subsequent work.
+Local workshop notes and implementation plans stay in ignored `plan/`; they are not dependencies of this package. Credential implementation, remote recovery agreement and shared cross-team fixture scenarios remain subsequent work.
 
 ## Remote lifecycle semantics (P0.3)
 
@@ -112,22 +112,22 @@ The source of HTTP code mappings is `conventions/http.json`; `ErrorCode.schema.j
 
 Header correlation selection precedes response creation; it does not bypass auth. A malformed correlation header is reported only after authentication/operation authorization succeeds; otherwise return the authentication/authorization error with a fresh server-generated correlation UUID. The exact middleware ordering for ingress limits and auth is implementation work; no detailed body diagnostics should leak to unauthenticated callers.
 
-| HTTP | Codes                                                                                                                                   |
-| ---- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| 400  | `malformed_json`, `unsupported_schema_version`, `invalid_request`, `invalid_cursor`                                                     |
-| 401  | `unauthenticated`                                                                                                                       |
-| 403  | `forbidden`                                                                                                                             |
-| 404  | `not_found`                                                                                                                             |
-| 409  | `idempotency_conflict`, `invalid_state_transition`, `approval_required`, `approval_expired`, `result_pending`, `remote_outcome_unknown` |
-| 413  | `payload_too_large`                                                                                                                     |
-| 415  | `unsupported_media_type`                                                                                                                |
-| 422  | `validation_failed`, `unsupported_capability`, `cancellation_unsupported`, `content_unavailable`                                        |
-| 429  | `rate_limited`                                                                                                                          |
-| 500  | `internal_error`                                                                                                                        |
-| 502  | `auth_failed`, `remote_failure`                                                                                                         |
-| 503  | `unavailable`, `remote_unavailable`                                                                                                     |
+| HTTP | Codes                                                                                                                                                          |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 400  | `malformed_json`, `unsupported_schema_version`, `invalid_request`, `invalid_cursor`                                                                            |
+| 401  | `unauthenticated`                                                                                                                                              |
+| 403  | `forbidden`                                                                                                                                                    |
+| 404  | `not_found`                                                                                                                                                    |
+| 409  | `idempotency_conflict`, `request_in_progress`, `invalid_state_transition`, `approval_required`, `approval_expired`, `result_pending`, `remote_outcome_unknown` |
+| 413  | `payload_too_large`                                                                                                                                            |
+| 415  | `unsupported_media_type`                                                                                                                                       |
+| 422  | `validation_failed`, `unsupported_capability`, `cancellation_unsupported`, `content_unavailable`                                                               |
+| 429  | `rate_limited`                                                                                                                                                 |
+| 500  | `internal_error`                                                                                                                                               |
+| 502  | `auth_failed`, `remote_failure`                                                                                                                                |
+| 503  | `unavailable`, `remote_unavailable`                                                                                                                            |
 
-These statuses apply when the HTTP operation itself fails. A successful task-status request remains HTTP 200 even if the remote task failed. `auth_failed` describes destination credentials; it must not be confused with caller authentication. Error bodies always use ErrorEnvelope v1, even when rejecting another requested version. Unknown provider codes normalize to the closest supported code; raw upstream text is not forwarded. Detailed retry and idempotency behavior remains P0.6/P0.7 work.
+These statuses apply when the HTTP operation itself fails. A successful task-status request remains HTTP 200 even if the remote task failed. `auth_failed` describes destination credentials; it must not be confused with caller authentication. Error bodies always use ErrorEnvelope v1, even when rejecting another requested version. Unknown provider codes normalize to the closest supported code; raw upstream text is not forwarded. Local idempotency is defined in P0.6 below; remote recovery agreement remains P0.7 work.
 
 `violations` is required only for `validation_failed` and forbidden on other error codes. `retry_after_seconds` remains required and nullable. On 429/503, an optional `Retry-After` response uses integer seconds matching a non-null body hint; omit it when no delay is known. The hint is not retry authorization. Runtime code must enforce matching header/body values.
 
@@ -191,7 +191,7 @@ The operation matrix defines entrypoint requirements, not every action-specific 
 
 An orchestrator SERVICE with `tasks:dispatch` can request a delegation only after verifying persisted task ownership, action-specific permissions and applicable approvals. Create a DelegationContext containing the service actor, exact multiplexer audience, principal/tenant, task ID/version, selected agent, action fingerprint, approval references and bounded validity window. The grant ID identifies the persisted authorization decision; the grant is integrity-protected or retrieved through an authenticated authoritative lookup. Do not place unsigned client-provided contexts directly into adapter calls.
 
-The multiplexer verifies the authenticated service matches `actor_service_id`, the audience and validity window, grant revocation, principal/tenant/task/agent bindings and task version. It resolves approval references to valid decisions for the same action fingerprint. Empty approval references are permitted only when policy does not require approval; the array itself is never proof that approval is unnecessary. Material changes to objective, repository, branch, allowed tools, destination or action permissions require reauthorization and a fresh matching grant. Fingerprint canonicalization and replay/idempotency semantics are subsequent P0 tasks.
+The multiplexer verifies the authenticated service matches `actor_service_id`, the audience and validity window, grant revocation, principal/tenant/task/agent bindings and task version. It resolves approval references to valid decisions for the same action fingerprint. Empty approval references are permitted only when policy does not require approval; the array itself is never proof that approval is unnecessary. Material changes to objective, repository, branch, allowed tools, destination or action permissions require reauthorization and a fresh matching grant. Request fingerprints and local replay semantics are defined in P0.6 below. Approval action snapshots require their own explicit canonicalization profile before grant issuance is implemented.
 
 The existing multiplexer `DispatchContext` already separates trusted principal/tenant values from task payloads and checks coding scope. The shared DelegationContext is a proposal for the boundary that constructs that internal context; do not bypass its repository/branch/tool checks. Map coding permissions from approved server-side task state, never arbitrary captured JSON. No multiplexer implementation is changed by this task.
 
@@ -216,3 +216,73 @@ Return `unauthenticated` for invalid credentials, `forbidden` for a disallowed o
 The gateway owner must confirm authoritative identity provisioning/resolution and revocation behavior. The multiplexer owner must confirm delegation verification and coding-scope mapping. The team must select credential providers, audiences, scope issuance, grant lifetimes, clock skew and revocation enforcement. No credential/token scheme is invented as already available here.
 
 Tests verify actor variants, scope restrictions, mapping states, delegation shape, operation/scope consistency, and rejection of identity fields in public inputs. They are structural contract tests, not proof of signature validation, user isolation, privilege intersection, approval enforcement or revocation. Add those service integration tests when the identity/authorization implementation exists.
+
+## Idempotency and request fingerprints (P0.6)
+
+`conventions/idempotency.json` specifies scope, schemas and fingerprint projections. `IdempotencyScope`, `RequestFingerprint` and `IdempotencyRecord` describe internal coordination metadata, not public authority or a complete database design. `scripts/reference-fingerprint.mjs` is a tested interoperability reference using development dependencies; it is not a production request handler or deduplication store.
+
+### Scope and key ownership
+
+For task creation, approval decisions and delivery submission, the lookup tuple is `(tenant_id, principal_id, operation, idempotency_key)`. Resolve tenant/principal through P0.5 before lookup; the server selects the operation, not a client field. Store tuple columns or an unambiguous structured encoding, never delimiter-concatenated values. The caller supplies a nonempty key up to 255 characters. Keys are case-sensitive opaque strings; do not trim or normalize them, and do not log raw keys. Use a fresh key for a genuinely new action and reuse the same key for retries of that action.
+
+The authenticated service/client ID is intentionally not part of the tuple: switching an authorized transport must not duplicate the same principal's logical action. `create_task` and `delegate_task` both map to `task.create` for the same TaskRequest. The destination, objective and source/context/reply references are included in the request fingerprint, so changing any of them under the same key conflicts. Approval scope covers decision and action fingerprint; changing approve to deny under one key conflicts. A second key cannot bypass an already-decided approval: lifecycle checks still apply.
+
+Source events use the existing global `(platform, platform_event_id)` lookup instead. The gateway namespaces event IDs across bot accounts/channels when needed. Resolve and compare owner/tenant before returning an existing event/task. A source-key collision across owners must fail without revealing another owner's record, even though the database uniqueness key has no tenant column. Do not create a second task on that collision.
+
+### Fingerprint profile
+
+The profile is `xmux-jcs-sha256-v1`. After strict schema validation, form this object and canonicalize it with [RFC 8785 JSON Canonicalization Scheme](https://www.rfc-editor.org/rfc/rfc8785.html), then SHA-256 hash its UTF-8 bytes and encode the digest as 64 lowercase hexadecimal characters:
+
+```text
+{
+  profile: "xmux-jcs-sha256-v1",
+  operation: <server-selected operation>,
+  tenant_id: <verified lowercase UUID>,
+  principal_id: <verified lowercase UUID>,
+  payload: <projected validated request>
+}
+```
+
+Projection rules:
+
+- TaskRequest, ApprovalRequest and DeliveryRequest exclude only their top-level `idempotency_key`. The key belongs in the lookup tuple, not the payload digest.
+- EventEnvelope excludes generated `event_id` and `auth_context`. The mapping reference must still be verified on every request before comparison; changing it cannot change ownership. Source actor, platform/event ID, occurrence time, source content, attachments and reply target remain included.
+- Normalize only declared UUID fields to lowercase: trusted identity UUIDs; TaskRequest.source_event_id; ApprovalRequest.approval_id/task_id; DeliveryRequest.task_id; EventEnvelope.tenant_id. Do not lowercase opaque references or text.
+- Preserve strings and array order exactly. Do not trim text, normalize Unicode, reorder URLs/attachments/references, fill optional defaults, or treat missing and null as equivalent. Null is rejected wherever the request schema forbids it. UUIDs are the only subtype normalization in this profile; timestamp spellings otherwise remain significant.
+- Reject duplicate JSON keys at the parser, malformed Unicode and non-JSON values before hashing. The reference helper receives already-parsed objects, so it cannot detect duplicate keys lost by an earlier parser. It rejects undefined, non-finite values and unsupported object shapes instead of silently dropping them.
+- Never fingerprint transport headers, credentials or freshly generated processing timestamps. The request's declared source timestamp is stable provenance and stays included.
+
+Store the profile with the digest and do not reinterpret old records using a changed algorithm. The digest is not an authentication mechanism, an anonymization guarantee, or the approval `action_fingerprint`. It can expose information about guessable inputs; protect it as internal coordination data and do not echo stored/requested hashes in conflict responses.
+
+Context, content and artifact references must identify immutable/versioned snapshots for the operation lifetime. A mutable reference pointing to changed content can preserve a request digest while changing the work; resolve/pin its version at first acceptance and reuse that snapshot. Do not refetch mutable content on replay to create new execution. The exact approval action snapshot (repository, branch, tools, destination and constraints) needs its own profile when approvals are implemented; this task does not claim request equality is approval equivalence.
+
+### Local outcomes and concurrency
+
+| Authorized lookup outcome              | Required behavior                                                                                                                             |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| No existing key                        | Atomically reserve the tuple and fingerprint; create the coordination resource and outbox notification in the same transaction where possible |
+| Same key and fingerprint, ACCEPTED     | Return the original stable resource reference with caller-visible current state; do not dispatch, enqueue or deliver a second action          |
+| Same key and fingerprint, RESERVED     | Bounded wait for the winning transaction, or HTTP 409 `request_in_progress`; never treat an unresolved reservation as a new request           |
+| Same key, different fingerprint        | HTTP 409 `idempotency_conflict`; sanitized message, no original payload/hash/resource details and no mutation of the old record               |
+| RETIRED record                         | Do not recreate work; return a sanitized resource-unavailable/not-found result after authorization                                            |
+| Invalid input or unauthorized identity | Reject without creating a usable reservation or exposing a previous resource                                                                  |
+
+A uniqueness constraint plus transactional conflict handling must choose one winner across concurrent requests. The winning transaction ties the scope/fingerprint to the resource and durable outbox. A process dying before commit leaves no accepted task; a process dying after commit must recover that same task. If a separate committed RESERVED state exists, reconciliation must establish whether its resource/outbox already exists before resuming it. Lease expiry alone cannot authorize remote execution.
+
+The task/event creation endpoints should return HTTP 202 for new durable acceptance and HTTP 200 for an accepted replay. Approval decisions return HTTP 200 once persisted, including authorized replays; delivery submission returns HTTP 202 for local acceptance and HTTP 200 for replay of that receipt. These are draft endpoint semantics; concrete success response envelopes remain pending API work. Replay responses may reflect newer status and refreshed HTTP correlation IDs, but stable resource identity must not change.
+
+Every replay rechecks present caller authentication, ownership and reference visibility before disclosing the stored result. An accepted approval replay reports the recorded decision without reapplying it; a newly requested decision still checks current expiry/action policy. A lost response, a new HTTP correlation ID, a restarted worker or a failed remote task does not create a new logical request.
+
+### Event replay and retention
+
+The event UUID may differ on a repeated gateway attempt, but the original source-event identity and task references are retained. The source occurrence timestamp and extracted references must be stable across retries. Changed content under the same source-event key conflicts; a platform edit is a separately identified event/revision, not a silent overwrite or automatic rerun. The gateway must agree on stable event/revision identifiers and snapshot references.
+
+Do not automatically expire unresolved reservations or records for running, unknown or pending-delivery work. On resource deletion, retire the key rather than silently allowing it to create the action again. Minimal tombstones retain the protected scope/fingerprint and retirement metadata without original source content. Exact retention/deletion periods require team policy; until approved, no automatic key reuse or tombstone purge is authorized by this draft. If privacy policy requires complete removal of the deduplication history, document the loss of replay protection and revoke/rotate the relevant intake namespace before accepting old replays again.
+
+### Separation from remote execution
+
+A local accepted task is not proof of remote acceptance. Persist an independent stable remote dispatch correlation/idempotency reference per logical dispatch attempt. Do not pass a user key unchanged across different agents, tenants or operations and assume the agent has the same scope. Verify the adapter's actual scope and retention guarantee; once its retention window ends, its original key may no longer protect against duplicate work.
+
+Timeout after a remote send requires reconciliation or an established still-valid remote idempotency guarantee. An ACCEPTED local record, a new key, a lease timeout, or a retry-delay hint is not evidence that remote work did not start. The current multiplexer HTTP draft accepts an idempotency key but that alone does not demonstrate provider deduplication. P0.7 will define the remote acceptance/reconciliation agreement; no other service implementation is changed here.
+
+Tests establish deterministic fingerprints, schema constraints and conflict-code mappings, including an independently calculated digest. They do not prove database uniqueness, crash recovery, authorization, tombstone retention, immutable-reference storage or remote duplicate prevention. Those require ledger/worker integration tests.

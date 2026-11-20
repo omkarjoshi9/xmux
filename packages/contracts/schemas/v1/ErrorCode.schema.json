@@ -29,6 +29,7 @@
     "auth_failed",
     "remote_failure",
     "unavailable",
-    "remote_unavailable"
+    "remote_unavailable",
+    "request_in_progress"
   ]
 }

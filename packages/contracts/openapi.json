@@ -2,8 +2,8 @@
   "openapi": "3.1.1",
   "info": {
     "title": "XMUX shared contracts (draft)",
-    "version": "0.1.0-draft.4",
-    "description": "P0.2–P0.5 draft schema, HTTP and authorization convention catalog. Empty paths are intentional: service operations and authentication bindings remain future work. This document describes no deployed service."
+    "version": "0.1.0-draft.5",
+    "description": "P0.2–P0.6 draft schema, HTTP, authorization and idempotency convention catalog. Empty paths are intentional: service operations and authentication bindings remain future work. This document describes no deployed service."
   },
   "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
   "paths": {},
@@ -196,7 +196,7 @@
         }
       },
       "Error409": {
-        "description": "HTTP 409: idempotency_conflict, invalid_state_transition, approval_required, approval_expired, result_pending, remote_outcome_unknown. HTTP mapping applies when this operation fails; a successful status lookup may contain a remote error without failing HTTP.",
+        "description": "HTTP 409: idempotency_conflict, invalid_state_transition, approval_required, approval_expired, result_pending, remote_outcome_unknown, request_in_progress. HTTP mapping applies when this operation fails; a successful status lookup may contain a remote error without failing HTTP.",
         "headers": {
           "X-Correlation-ID": {
             "$ref": "#/components/headers/CorrelationId"
@@ -220,7 +220,8 @@
                         "approval_required",
                         "approval_expired",
                         "result_pending",
-                        "remote_outcome_unknown"
+                        "remote_outcome_unknown",
+                        "request_in_progress"
                       ]
                     }
                   }
@@ -1170,7 +1171,8 @@
           "auth_failed",
           "remote_failure",
           "unavailable",
-          "remote_unavailable"
+          "remote_unavailable",
+          "request_in_progress"
         ]
       },
       "ErrorEnvelope": {
@@ -1376,6 +1378,146 @@
         "required": [
           "path",
           "reason"
+        ]
+      },
+      "IdempotencyRecord": {
+        "title": "IdempotencyRecord",
+        "description": "Internal coordination metadata. RESERVED is not permission to execute after a crash. RETIRED prevents silent recreation after resource removal.",
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "schema_version": {
+                "type": "string",
+                "const": "1"
+              },
+              "scope": {
+                "$ref": "#/components/schemas/IdempotencyScope"
+              },
+              "fingerprint": {
+                "$ref": "#/components/schemas/RequestFingerprint"
+              },
+              "created_at": {
+                "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+              },
+              "state": {
+                "const": "RESERVED"
+              }
+            },
+            "required": [
+              "schema_version",
+              "scope",
+              "fingerprint",
+              "created_at",
+              "state"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "schema_version": {
+                "type": "string",
+                "const": "1"
+              },
+              "scope": {
+                "$ref": "#/components/schemas/IdempotencyScope"
+              },
+              "fingerprint": {
+                "$ref": "#/components/schemas/RequestFingerprint"
+              },
+              "created_at": {
+                "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+              },
+              "state": {
+                "const": "ACCEPTED"
+              },
+              "resource_ref": {
+                "$ref": "#/components/schemas/Common/$defs/Reference"
+              }
+            },
+            "required": [
+              "schema_version",
+              "scope",
+              "fingerprint",
+              "created_at",
+              "state",
+              "resource_ref"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "schema_version": {
+                "type": "string",
+                "const": "1"
+              },
+              "scope": {
+                "$ref": "#/components/schemas/IdempotencyScope"
+              },
+              "fingerprint": {
+                "$ref": "#/components/schemas/RequestFingerprint"
+              },
+              "created_at": {
+                "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+              },
+              "state": {
+                "const": "RETIRED"
+              },
+              "retired_at": {
+                "$ref": "#/components/schemas/Common/$defs/UtcTimestamp"
+              }
+            },
+            "required": [
+              "schema_version",
+              "scope",
+              "fingerprint",
+              "created_at",
+              "state",
+              "retired_at"
+            ]
+          }
+        ]
+      },
+      "IdempotencyScope": {
+        "title": "IdempotencyScope",
+        "description": "Internal deduplication tuple. Tenant and principal are server-resolved; operation is server-selected. Never derive authority from this record.",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1"
+          },
+          "tenant_id": {
+            "$ref": "#/components/schemas/Common/$defs/Uuid"
+          },
+          "principal_id": {
+            "$ref": "#/components/schemas/Common/$defs/Uuid"
+          },
+          "operation": {
+            "type": "string",
+            "enum": [
+              "task.create",
+              "approval.decide",
+              "delivery.submit"
+            ]
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "pattern": "\\S"
+          }
+        },
+        "required": [
+          "schema_version",
+          "tenant_id",
+          "principal_id",
+          "operation",
+          "idempotency_key"
         ]
       },
       "IdentityMapping": {
@@ -1776,6 +1918,25 @@
           "remote_task_id",
           "correlation_id",
           "accepted_at"
+        ]
+      },
+      "RequestFingerprint": {
+        "title": "RequestFingerprint",
+        "description": "Server-computed request comparison digest; not a credential, approval signature or remote retry guarantee.",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "const": "xmux-jcs-sha256-v1"
+          },
+          "digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "required": [
+          "profile",
+          "digest"
         ]
       },
       "RoutineRef": {

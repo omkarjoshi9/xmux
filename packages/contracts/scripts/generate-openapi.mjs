@@ -131,9 +131,9 @@ const output =
       openapi: "3.1.1",
       info: {
         title: "XMUX shared contracts (draft)",
-        version: "0.1.0-draft.4",
+        version: "0.1.0-draft.5",
         description:
-          "P0.2–P0.5 draft schema, HTTP and authorization convention catalog. Empty paths are intentional: service operations and authentication bindings remain future work. This document describes no deployed service.",
+          "P0.2–P0.6 draft schema, HTTP, authorization and idempotency convention catalog. Empty paths are intentional: service operations and authentication bindings remain future work. This document describes no deployed service.",
       },
       jsonSchemaDialect: "https://json-schema.org/draft/2020-12/schema",
       paths: {},

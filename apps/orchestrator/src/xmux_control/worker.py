@@ -1,8 +1,11 @@
-"""Worker process entrypoint; queue execution is implemented in the worker phase."""
+"""Recoverable PostgreSQL outbox worker."""
 
+import os
 import signal
 import threading
 
+from .db.ledger import Ledger
+from .dispatch import Dispatcher, HttpMultiplexer
 from .health import dependencies
 from .logging import configure_logging
 from .settings import Settings
@@ -16,7 +19,12 @@ def main() -> None:
     stopped = threading.Event()
     for sig in (signal.SIGTERM, signal.SIGINT):
         signal.signal(sig, lambda *_: stopped.set())
-    stopped.wait()
+    dispatcher = Dispatcher(Ledger(settings.database_url), HttpMultiplexer(settings,
+        reconcile_path=os.getenv('MULTIPLEXER_RECONCILE_PATH'),
+        result_path=os.getenv('MULTIPLEXER_RESULT_PATH')))
+    while not stopped.is_set():
+        if not dispatcher.tick():
+            stopped.wait(1)
 
 
 if __name__ == "__main__":

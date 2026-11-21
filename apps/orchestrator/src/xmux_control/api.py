@@ -15,6 +15,7 @@ from xmux_control.contracts import validate
 from xmux_control.db.ledger import Conflict, Ledger, NotFound
 from xmux_control.health import mount_health
 from xmux_control.logging import configure_logging
+from xmux_control.observations import record_callback
 from xmux_control.settings import Settings
 
 
@@ -176,5 +177,12 @@ def create_app(settings=None):
                 settings.cursor_secret.encode(), data, hashlib.sha256)).decode()
         return {'schema_version': '1', 'items': [task_status(row) for row in rows[:limit]],
                 'next_cursor': next_cursor}
+
+    @app.post('/internal/callbacks')
+    async def callback(request: Request, actor: Actor = Depends(authenticate)):
+        actor.require('tasks:observe')
+        data = await body(request, 'TaskCallback')
+        applied = record_callback(ledger, actor, data)
+        return {'accepted': True, 'applied': applied}
 
     return app

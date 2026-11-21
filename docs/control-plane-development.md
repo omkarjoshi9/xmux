@@ -40,3 +40,11 @@ Set `AUTH_REGISTRY_FILE` to a mounted JSON registry containing `tokens` (SHA-256
 Task create/read/list/result/cancel endpoints share PostgreSQL ownership checks. Gateway `/v1/events` requires a matching verified identity reference and currently accepts explicit `/research`, `/summarize`, or `/delegate` commands. Ambiguous natural language is rejected. It records supplied URLs without fetching arbitrary content. Running tasks cannot yet be cancelled through this intake phase; unsupported remote cancellation is explicit.
 
 `tests/integration/mocks/services.py:create_mock(token, scenario)` supplies authenticated mock dispatch/delivery endpoints for local teammate integration. Scenarios: complete, failure, offline, timeout_before, timeout_after. `/mock/*` routes are test harness facilities, not agreed production multiplexer routes. The injected mock keeps in-memory remote state; PostgreSQL durability tests use real databases separately. The real multiplexer must agree status/reconciliation endpoints before deployment.
+
+## Dispatch recovery (P4 work in progress)
+
+The worker now claims PostgreSQL outbox entries with fenced leases, records dispatch intent before network I/O, validates remote receipts and results, and recovers uncertain dispatch through correlation lookup. It never resubmits an uncertain action. Configure `MULTIPLEXER_RECONCILE_PATH` and `MULTIPLEXER_RESULT_PATH` only for verified adapter endpoints. These routes are not assumed to exist on the teammate's service.
+
+Authenticated result callbacks use `/internal/callbacks`, require the multiplexer role and `tasks:observe`, and verify tenant plus the persisted remote receipt. Callback IDs/sequences prevent duplicate or conflicting terminal updates. Keep this route on private ingress.
+
+Pending P4 work: registry-based selection/capability checks, supported remote cancellation, safe retry execution after authoritative absence, and an operator dead-letter replay command. Current authoritative absence transitions to RETRY_PENDING but requires review; it does not automatically resubmit. Missing reconciliation stays UNKNOWN and exhausts into a dead-letter record after bounded attempts. Non-research/summarize tasks wait for approval; approval issuance/consumption follows P6.

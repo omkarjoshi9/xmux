@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "ReplyTarget": {
+      "additionalProperties": false,
+      "properties": {
+        "channel_id": {
+          "pattern": "^-?\\d+$",
+          "title": "Channel Id",
+          "type": "string"
+        },
+        "message_id": {
+          "pattern": "^\\d+$",
+          "title": "Message Id",
+          "type": "string"
+        },
+        "thread_id": {
+          "anyOf": [
+            {
+              "pattern": "^\\d+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Thread Id"
+        },
+        "interaction": {
+          "default": false,
+          "title": "Interaction",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "channel_id",
+        "message_id"
+      ],
+      "title": "ReplyTarget",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "task_id": {
+      "format": "uuid",
+      "title": "Task Id",
+      "type": "string"
+    },
+    "channel": {
+      "enum": [
+        "telegram",
+        "discord"
+      ],
+      "title": "Channel",
+      "type": "string"
+    },
+    "reply_target": {
+      "$ref": "#/$defs/ReplyTarget"
+    },
+    "text": {
+      "maxLength": 20000,
+      "title": "Text",
+      "type": "string"
+    },
+    "artifacts": {
+      "items": {
+        "format": "uri",
+        "maxLength": 2083,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 10,
+      "title": "Artifacts",
+      "type": "array"
+    }
+  },
+  "required": [
+    "task_id",
+    "channel",
+    "reply_target",
+    "text"
+  ],
+  "title": "DeliveryRequest",
+  "type": "object"
+}

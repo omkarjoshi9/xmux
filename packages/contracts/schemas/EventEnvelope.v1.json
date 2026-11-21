@@ -1,0 +1,311 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "Attachment": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "format": "uri",
+              "maxLength": 2083,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        }
+      },
+      "required": [
+        "id",
+        "kind"
+      ],
+      "title": "Attachment",
+      "type": "object"
+    },
+    "AuthContext": {
+      "additionalProperties": false,
+      "properties": {
+        "linked": {
+          "title": "Linked",
+          "type": "boolean"
+        },
+        "principal_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Principal Id"
+        },
+        "scope": {
+          "enum": [
+            "private",
+            "group"
+          ],
+          "title": "Scope",
+          "type": "string"
+        },
+        "permissions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Permissions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "linked",
+        "scope"
+      ],
+      "title": "AuthContext",
+      "type": "object"
+    },
+    "ReplyTarget": {
+      "additionalProperties": false,
+      "properties": {
+        "channel_id": {
+          "pattern": "^-?\\d+$",
+          "title": "Channel Id",
+          "type": "string"
+        },
+        "message_id": {
+          "pattern": "^\\d+$",
+          "title": "Message Id",
+          "type": "string"
+        },
+        "thread_id": {
+          "anyOf": [
+            {
+              "pattern": "^\\d+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Thread Id"
+        },
+        "interaction": {
+          "default": false,
+          "title": "Interaction",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "channel_id",
+        "message_id"
+      ],
+      "title": "ReplyTarget",
+      "type": "object"
+    },
+    "Source": {
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "title": "Url",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "available",
+            "content_unavailable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "canonical_url": {
+          "anyOf": [
+            {
+              "format": "uri",
+              "maxLength": 2083,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Canonical Url"
+        },
+        "title": {
+          "default": "",
+          "title": "Title",
+          "type": "string"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "excerpt": {
+          "default": "",
+          "title": "Excerpt",
+          "type": "string"
+        }
+      },
+      "required": [
+        "url",
+        "status"
+      ],
+      "title": "Source",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "event_id": {
+      "format": "uuid",
+      "title": "Event Id",
+      "type": "string"
+    },
+    "platform": {
+      "enum": [
+        "telegram",
+        "discord"
+      ],
+      "title": "Platform",
+      "type": "string"
+    },
+    "platform_event_id": {
+      "title": "Platform Event Id",
+      "type": "string"
+    },
+    "event_type": {
+      "enum": [
+        "direct_message",
+        "mention",
+        "capture"
+      ],
+      "title": "Event Type",
+      "type": "string"
+    },
+    "occurred_at": {
+      "format": "date-time",
+      "title": "Occurred At",
+      "type": "string"
+    },
+    "actor_external_id": {
+      "title": "Actor External Id",
+      "type": "string"
+    },
+    "tenant_id": {
+      "format": "uuid",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "text": {
+      "title": "Text",
+      "type": "string"
+    },
+    "urls": {
+      "items": {
+        "format": "uri",
+        "maxLength": 2083,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Urls",
+      "type": "array"
+    },
+    "attachments": {
+      "items": {
+        "$ref": "#/$defs/Attachment"
+      },
+      "title": "Attachments",
+      "type": "array"
+    },
+    "reply_target": {
+      "$ref": "#/$defs/ReplyTarget"
+    },
+    "auth_context": {
+      "$ref": "#/$defs/AuthContext"
+    },
+    "guild_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Guild Id"
+    },
+    "forwarded": {
+      "default": false,
+      "title": "Forwarded",
+      "type": "boolean"
+    },
+    "replied_to_message_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Replied To Message Id"
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/Source"
+      },
+      "title": "Sources",
+      "type": "array"
+    }
+  },
+  "required": [
+    "event_id",
+    "platform",
+    "platform_event_id",
+    "event_type",
+    "occurred_at",
+    "actor_external_id",
+    "tenant_id",
+    "text",
+    "urls",
+    "attachments",
+    "reply_target",
+    "auth_context"
+  ],
+  "title": "EventEnvelope",
+  "type": "object"
+}

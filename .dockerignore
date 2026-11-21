@@ -1,0 +1,9 @@
+.git
+attachments
+library-files
+shared
+scratch
+work
+data
+.env*
+**/__pycache__

@@ -1,0 +1,118 @@
+{
+  "schema_version": "1",
+  "status": "draft",
+  "default_decision": "deny",
+  "unknown_operation_decision": "deny",
+  "operations": {
+    "event.ingest": {
+      "actor_types": [
+        "SERVICE"
+      ],
+      "service_roles": [
+        "gateway"
+      ],
+      "scope": "events:ingest",
+      "principal_source": "active_identity_mapping"
+    },
+    "task.create": {
+      "actor_types": [
+        "USER",
+        "SERVICE"
+      ],
+      "service_roles": [
+        "gateway"
+      ],
+      "scope": "tasks:create",
+      "principal_source": "authenticated_user_or_owned_event"
+    },
+    "task.read": {
+      "actor_types": [
+        "USER"
+      ],
+      "service_roles": [],
+      "scope": "tasks:read",
+      "principal_source": "authenticated_user"
+    },
+    "task.cancel": {
+      "actor_types": [
+        "USER"
+      ],
+      "service_roles": [],
+      "scope": "tasks:cancel",
+      "principal_source": "authenticated_user"
+    },
+    "agent.list": {
+      "actor_types": [
+        "USER",
+        "SERVICE"
+      ],
+      "service_roles": [
+        "orchestrator"
+      ],
+      "scope": "agents:read",
+      "principal_source": "authenticated_user_or_persisted_task"
+    },
+    "approval.decide": {
+      "actor_types": [
+        "USER"
+      ],
+      "service_roles": [],
+      "scope": "approvals:decide",
+      "principal_source": "authenticated_user"
+    },
+    "routine.create": {
+      "actor_types": [
+        "USER"
+      ],
+      "service_roles": [],
+      "scope": "routines:create",
+      "principal_source": "authenticated_user"
+    },
+    "routine.read": {
+      "actor_types": [
+        "USER"
+      ],
+      "service_roles": [],
+      "scope": "routines:read",
+      "principal_source": "authenticated_user"
+    },
+    "reference.search": {
+      "actor_types": [
+        "USER"
+      ],
+      "service_roles": [],
+      "scope": "references:read",
+      "principal_source": "authenticated_user"
+    },
+    "task.dispatch": {
+      "actor_types": [
+        "SERVICE"
+      ],
+      "service_roles": [
+        "orchestrator"
+      ],
+      "scope": "tasks:dispatch",
+      "principal_source": "verified_task_delegation"
+    },
+    "task.observe": {
+      "actor_types": [
+        "SERVICE"
+      ],
+      "service_roles": [
+        "multiplexer"
+      ],
+      "scope": "tasks:observe",
+      "principal_source": "persisted_remote_job"
+    },
+    "delivery.submit": {
+      "actor_types": [
+        "SERVICE"
+      ],
+      "service_roles": [
+        "orchestrator"
+      ],
+      "scope": "deliveries:submit",
+      "principal_source": "persisted_task_reply_target"
+    }
+  }
+}

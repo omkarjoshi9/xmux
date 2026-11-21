@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmux.example/contracts/v1/EventReceipt.schema.json",
+  "title": "EventReceipt",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1"
+    },
+    "event_id": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+    },
+    "task_ids": {
+      "type": "array",
+      "items": {
+        "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+      },
+      "maxItems": 100
+    }
+  },
+  "required": [
+    "schema_version",
+    "event_id",
+    "task_ids"
+  ]
+}

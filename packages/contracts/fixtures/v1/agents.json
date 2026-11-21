@@ -1,0 +1,21 @@
+{
+  "schema_version": "1",
+  "agents": [
+    {
+      "schema_version": "1",
+      "agent_id": "hermes",
+      "operations": [
+        "research"
+      ],
+      "supports_status": true,
+      "supports_cancel": false,
+      "supports_schedule": false,
+      "supports_memory_lookup": false,
+      "supports_callbacks": false,
+      "supports_correlation_lookup": false,
+      "dispatch_idempotency": {
+        "supported": false
+      }
+    }
+  ]
+}

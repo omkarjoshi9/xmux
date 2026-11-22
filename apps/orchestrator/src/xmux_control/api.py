@@ -21,6 +21,8 @@ from xmux_control.health import mount_health
 from xmux_control.logging import configure_logging
 from xmux_control.observations import record_callback
 from xmux_control.phase6_router import install as install_phase6
+from xmux_control.phase8_router import install as install_phase8
+from xmux_control.routine_adapter import HttpRoutines
 from xmux_control.settings import Settings
 
 
@@ -39,6 +41,7 @@ def create_app(settings=None):
     ledger = Ledger(settings.database_url)
     app.state.ledger = ledger
     install_phase6(app, ledger)
+    install_phase8(app, ledger, HttpRoutines(settings))
     app.include_router(cancellation_router(ledger, authenticate))
     app.include_router(delivery_router(ledger, authenticate))
     install_catalog(app, ledger, registry_url=settings.registry_url,

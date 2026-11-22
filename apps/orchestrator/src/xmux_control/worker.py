@@ -13,6 +13,7 @@ from .delivery import Delivery, HttpGateway
 from .dispatch import Dispatcher, HttpMultiplexer
 from .health import dependencies
 from .logging import configure_logging
+from .routines import Routines
 from .settings import Settings
 from .workflows import Workflows
 
@@ -39,6 +40,7 @@ def main() -> None:
     workers = [dispatcher, Delivery(ledger, gateway), Cancellation(ledger, cancellation)]
     while not stopped.is_set():
         Approvals(ledger).expire()
+        Routines(ledger, None).expire()
         progressed = [worker.tick() for worker in workers]
         Workflows(ledger).tick()
         if not any(progressed):

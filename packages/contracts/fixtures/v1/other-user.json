@@ -1,0 +1,14 @@
+{
+  "schema_version": "1",
+  "audience": "orchestrator",
+  "authenticated_at": "2026-11-21T12:00:00Z",
+  "expires_at": "2026-11-21T12:05:00Z",
+  "actor_type": "USER",
+  "subject_ref": "subject_1",
+  "tenant_id": "44331ef6-b679-4ecb-bd83-fef7d89d25cd",
+  "principal_id": "b5a0c7ce-f3b6-4c9a-8189-5d510e208c33",
+  "scopes": [
+    "tasks:read",
+    "tasks:create"
+  ]
+}

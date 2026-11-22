@@ -1,0 +1,13 @@
+{
+  "schema_version": "1",
+  "code": "validation_failed",
+  "message": "Example contract response",
+  "correlation_id": "d5c1bb6a-0ca0-4687-a348-48f736b27f74",
+  "retry_after_seconds": null,
+  "violations": [
+    {
+      "path": "/objective",
+      "reason": "required"
+    }
+  ]
+}

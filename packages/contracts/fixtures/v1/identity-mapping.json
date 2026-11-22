@@ -1,0 +1,11 @@
+{
+  "schema_version": "1",
+  "identity_mapping_ref": "mapping_123",
+  "gateway_service_id": "gateway_1",
+  "platform": "telegram",
+  "actor_external_id": "user_123",
+  "tenant_id": "44331ef6-b679-4ecb-bd83-fef7d89d25cd",
+  "principal_id": "733a6e4b-468b-42c6-b5ec-3e23284ad2ae",
+  "verified_at": "2026-11-21T12:00:00Z",
+  "state": "ACTIVE"
+}

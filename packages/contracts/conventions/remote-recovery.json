@@ -1,0 +1,109 @@
+{
+  "schema_version": "1",
+  "status": "draft",
+  "default_action": "retain_unknown_and_reconcile",
+  "rules": {
+    "dispatch.accepted": {
+      "next_state": "RUNNING",
+      "action": "persist_remote_reference",
+      "requires": [
+        "authenticated_expected_owner",
+        "matching_attempt_identity",
+        "durable_remote_acceptance"
+      ]
+    },
+    "dispatch.terminal": {
+      "next_state": "FROM_VERIFIED_RESULT",
+      "action": "persist_terminal_result",
+      "requires": [
+        "authenticated_expected_owner",
+        "matching_attempt_identity",
+        "verified_terminal_result",
+        "monotonic_state_check"
+      ]
+    },
+    "dispatch.not_accepted.transient": {
+      "next_state": "RETRY_PENDING",
+      "action": "consider_bounded_retry",
+      "requires": [
+        "authenticated_expected_owner",
+        "matching_attempt_identity",
+        "verified_never_accepted",
+        "inflight_acceptance_closed",
+        "current_authorization",
+        "retry_budget"
+      ]
+    },
+    "dispatch.not_accepted.permanent": {
+      "next_state": "FAILED",
+      "action": "record_preacceptance_failure",
+      "requires": [
+        "authenticated_expected_owner",
+        "matching_attempt_identity",
+        "verified_never_accepted",
+        "inflight_acceptance_closed"
+      ]
+    },
+    "dispatch.unknown": {
+      "next_state": "UNKNOWN",
+      "action": "reconcile_without_new_dispatch",
+      "requires": [
+        "persisted_attempt"
+      ]
+    },
+    "lookup.found": {
+      "next_state": "RUNNING",
+      "action": "persist_remote_reference_then_observe",
+      "requires": [
+        "authenticated_expected_owner",
+        "matching_attempt_identity",
+        "monotonic_state_check"
+      ]
+    },
+    "lookup.absent": {
+      "next_state": "RETRY_PENDING",
+      "action": "consider_bounded_retry",
+      "requires": [
+        "authenticated_expected_owner",
+        "matching_attempt_identity",
+        "no_prior_acceptance_evidence",
+        "verified_never_accepted",
+        "inflight_acceptance_closed",
+        "unexpired_evidence",
+        "current_authorization",
+        "retry_budget"
+      ]
+    },
+    "lookup.unknown": {
+      "next_state": "UNKNOWN",
+      "action": "reconcile_or_operator_review",
+      "requires": [
+        "persisted_attempt"
+      ]
+    },
+    "lookup.unsupported": {
+      "next_state": "UNKNOWN",
+      "action": "operator_review",
+      "requires": [
+        "persisted_attempt"
+      ]
+    }
+  },
+  "never_retry_because": [
+    "timeout",
+    "http_5xx",
+    "empty_eventually_consistent_lookup",
+    "expired_worker_lease",
+    "exhausted_poll_budget",
+    "expired_remote_idempotency_window",
+    "operator_guess"
+  ],
+  "same_key_retransmission_requires": [
+    "documented_end_to_end_idempotency",
+    "same_principal_tenant_agent_operation",
+    "same_key_and_immutable_payload",
+    "unexpired_guarantee_for_entire_acceptance_window",
+    "current_authorization",
+    "retry_budget"
+  ]
+}

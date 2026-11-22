@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmux.example/contracts/v1/IdentityMapping.schema.json",
+  "title": "IdentityMapping",
+  "description": "Server-owned identity-link record. ACTIVE requires explicit verified linking; existence or schema validity does not authorize a caller.",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1"
+        },
+        "identity_mapping_ref": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+        },
+        "gateway_service_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+        },
+        "platform": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+        },
+        "actor_external_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+        },
+        "principal_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+        },
+        "tenant_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+        },
+        "verified_at": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+        },
+        "state": {
+          "const": "ACTIVE"
+        }
+      },
+      "required": [
+        "schema_version",
+        "identity_mapping_ref",
+        "gateway_service_id",
+        "platform",
+        "actor_external_id",
+        "principal_id",
+        "tenant_id",
+        "verified_at",
+        "state"
+      ]
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1"
+        },
+        "identity_mapping_ref": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+        },
+        "gateway_service_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+        },
+        "platform": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+        },
+        "actor_external_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+        },
+        "principal_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+        },
+        "tenant_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+        },
+        "verified_at": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+        },
+        "state": {
+          "const": "REVOKED"
+        },
+        "revoked_at": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+        }
+      },
+      "required": [
+        "schema_version",
+        "identity_mapping_ref",
+        "gateway_service_id",
+        "platform",
+        "actor_external_id",
+        "principal_id",
+        "tenant_id",
+        "verified_at",
+        "state",
+        "revoked_at"
+      ]
+    }
+  ]
+}

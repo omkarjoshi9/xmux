@@ -1,0 +1,22 @@
+{
+  "schema_version": "1",
+  "event_id": "b5a0c7ce-f3b6-4c9a-8189-5d510e208c33",
+  "platform": "telegram",
+  "platform_event_id": "bot_1:chat_42:msg_7",
+  "event_type": "direct_message",
+  "occurred_at": "2026-11-21T12:00:00Z",
+  "actor_external_id": "user_123",
+  "tenant_id": "44331ef6-b679-4ecb-bd83-fef7d89d25cd",
+  "text": "Research the supplied claim",
+  "urls": [
+    "https://example.org/post"
+  ],
+  "attachments": [],
+  "reply_target": {
+    "channel_id": "chat_42",
+    "message_id": "msg_7"
+  },
+  "auth_context": {
+    "identity_mapping_ref": "mapping_123"
+  }
+}

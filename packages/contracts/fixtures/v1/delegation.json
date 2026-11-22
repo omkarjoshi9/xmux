@@ -1,0 +1,16 @@
+{
+  "schema_version": "1",
+  "grant_id": "c6b57247-4ce1-438f-b41d-b6712b2a894b",
+  "actor_service_id": "orchestrator_1",
+  "audience": "multiplexer",
+  "tenant_id": "44331ef6-b679-4ecb-bd83-fef7d89d25cd",
+  "principal_id": "733a6e4b-468b-42c6-b5ec-3e23284ad2ae",
+  "task_id": "70d82b26-1b1f-459b-93e1-a3c772663488",
+  "task_version": 1,
+  "agent_id": "hermes",
+  "scope": "tasks:dispatch",
+  "action_fingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "approval_refs": [],
+  "issued_at": "2026-11-21T12:00:00Z",
+  "expires_at": "2026-11-21T12:05:00Z"
+}

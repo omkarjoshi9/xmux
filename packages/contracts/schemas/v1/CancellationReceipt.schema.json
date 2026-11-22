@@ -1,0 +1,174 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmux.example/contracts/v1/CancellationReceipt.schema.json",
+  "title": "CancellationReceipt",
+  "description": "REQUESTED is an acknowledgement, not evidence of cancellation. Only CONFIRMED or a verified terminal observation can support a terminal transition.",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1"
+        },
+        "cancellation_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+        },
+        "remote_ref": {
+          "$ref": "https://xmux.example/contracts/v1/RemoteTaskRef.schema.json"
+        },
+        "observed_at": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+        },
+        "outcome": {
+          "const": "REQUESTED"
+        }
+      },
+      "required": [
+        "schema_version",
+        "cancellation_id",
+        "remote_ref",
+        "observed_at",
+        "outcome"
+      ]
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1"
+        },
+        "cancellation_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+        },
+        "remote_ref": {
+          "$ref": "https://xmux.example/contracts/v1/RemoteTaskRef.schema.json"
+        },
+        "observed_at": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+        },
+        "outcome": {
+          "const": "CONFIRMED"
+        },
+        "confirmed_at": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+        }
+      },
+      "required": [
+        "schema_version",
+        "cancellation_id",
+        "remote_ref",
+        "observed_at",
+        "outcome",
+        "confirmed_at"
+      ]
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1"
+        },
+        "cancellation_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+        },
+        "remote_ref": {
+          "$ref": "https://xmux.example/contracts/v1/RemoteTaskRef.schema.json"
+        },
+        "observed_at": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+        },
+        "outcome": {
+          "const": "UNSUPPORTED"
+        },
+        "error": {
+          "$ref": "https://xmux.example/contracts/v1/ErrorEnvelope.schema.json"
+        }
+      },
+      "required": [
+        "schema_version",
+        "cancellation_id",
+        "remote_ref",
+        "observed_at",
+        "outcome",
+        "error"
+      ]
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1"
+        },
+        "cancellation_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+        },
+        "remote_ref": {
+          "$ref": "https://xmux.example/contracts/v1/RemoteTaskRef.schema.json"
+        },
+        "observed_at": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+        },
+        "outcome": {
+          "const": "UNKNOWN"
+        },
+        "error": {
+          "$ref": "https://xmux.example/contracts/v1/ErrorEnvelope.schema.json"
+        }
+      },
+      "required": [
+        "schema_version",
+        "cancellation_id",
+        "remote_ref",
+        "observed_at",
+        "outcome",
+        "error"
+      ]
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1"
+        },
+        "cancellation_id": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+        },
+        "remote_ref": {
+          "$ref": "https://xmux.example/contracts/v1/RemoteTaskRef.schema.json"
+        },
+        "observed_at": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+        },
+        "outcome": {
+          "const": "ALREADY_TERMINAL"
+        },
+        "terminal_status": {
+          "type": "string",
+          "enum": [
+            "SUCCEEDED",
+            "FAILED",
+            "CANCELLED"
+          ]
+        }
+      },
+      "required": [
+        "schema_version",
+        "cancellation_id",
+        "remote_ref",
+        "observed_at",
+        "outcome",
+        "terminal_status"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmux.example/contracts/v1/RoutineRef.schema.json",
+  "title": "RoutineRef",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1"
+    },
+    "routine_id": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+    },
+    "owner_agent_id": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+    },
+    "remote_schedule_ref": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "ACTIVE",
+        "PAUSED",
+        "REMOVED",
+        "UNKNOWN"
+      ]
+    },
+    "created_at": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+    },
+    "last_verified_at": {
+      "anyOf": [
+        {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "routine_id",
+    "owner_agent_id",
+    "remote_schedule_ref",
+    "state",
+    "created_at",
+    "last_verified_at"
+  ]
+}

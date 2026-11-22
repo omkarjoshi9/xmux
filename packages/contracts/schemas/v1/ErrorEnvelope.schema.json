@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmux.example/contracts/v1/ErrorEnvelope.schema.json",
+  "title": "ErrorEnvelope",
+  "description": "Draft normalized error. Message must be sanitized. Neither code nor retry_after_seconds grants permission to retry a side effect.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1"
+    },
+    "code": {
+      "$ref": "https://xmux.example/contracts/v1/ErrorCode.schema.json"
+    },
+    "message": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048,
+      "pattern": "\\S"
+    },
+    "correlation_id": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+    },
+    "retry_after_seconds": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 86400
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "violations": {
+      "type": "array",
+      "items": {
+        "$ref": "https://xmux.example/contracts/v1/FieldViolation.schema.json"
+      },
+      "minItems": 1,
+      "maxItems": 50,
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "schema_version",
+    "code",
+    "message",
+    "correlation_id",
+    "retry_after_seconds"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "code": {
+            "const": "validation_failed"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "violations"
+        ],
+        "properties": {
+          "violations": true
+        }
+      },
+      "else": {
+        "properties": {
+          "violations": false
+        }
+      }
+    }
+  ]
+}

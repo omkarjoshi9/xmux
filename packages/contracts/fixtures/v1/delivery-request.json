@@ -1,0 +1,14 @@
+{
+  "schema_version": "1",
+  "task_id": "70d82b26-1b1f-459b-93e1-a3c772663488",
+  "idempotency_key": "completion_1",
+  "channel": "telegram",
+  "reply_target": {
+    "channel_id": "chat_42",
+    "message_id": "msg_7"
+  },
+  "text": "Research complete",
+  "artifacts": [
+    "result_1"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "schema_version": "1",
+  "idempotency_key": "telegram:chat_42:msg_7:research",
+  "source_event_id": "39b5ee0b-6ecf-4ef8-8953-a34a8272ec90",
+  "intent": "schedule",
+  "requested_agent": "hermes",
+  "objective": "Create a weekly routine",
+  "context_refs": [
+    "content_abc"
+  ],
+  "reply_target_ref": "reply_123"
+}

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmux.example/contracts/v1/TaskListQuery.schema.json",
+  "title": "TaskListQuery",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "limit": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "default": 20
+    },
+    "cursor": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Cursor"
+    },
+    "status": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/TaskState"
+    }
+  },
+  "required": []
+}

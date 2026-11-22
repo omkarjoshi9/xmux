@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmux.example/contracts/v1/IdempotencyScope.schema.json",
+  "title": "IdempotencyScope",
+  "description": "Internal deduplication tuple. Tenant and principal are server-resolved; operation is server-selected. Never derive authority from this record.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1"
+    },
+    "tenant_id": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+    },
+    "principal_id": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+    },
+    "operation": {
+      "type": "string",
+      "enum": [
+        "task.create",
+        "approval.decide",
+        "delivery.submit"
+      ]
+    },
+    "idempotency_key": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "pattern": "\\S"
+    }
+  },
+  "required": [
+    "schema_version",
+    "tenant_id",
+    "principal_id",
+    "operation",
+    "idempotency_key"
+  ]
+}

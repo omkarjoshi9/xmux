@@ -11,6 +11,8 @@ from fastapi.responses import JSONResponse
 from jsonschema import ValidationError
 
 from xmux_control.auth import Actor, authenticate
+from xmux_control.cancellation import router as cancellation_router
+from xmux_control.delivery import router as delivery_router
 from xmux_control.contracts import validate
 from xmux_control.db.ledger import Conflict, Ledger, NotFound
 from xmux_control.health import mount_health
@@ -33,6 +35,8 @@ def create_app(settings=None):
     app.state.settings = settings
     ledger = Ledger(settings.database_url)
     app.state.ledger = ledger
+    app.include_router(cancellation_router(ledger, authenticate))
+    app.include_router(delivery_router(ledger, authenticate))
     mount_health(app, settings)
 
     def error(status, code):
@@ -124,18 +128,6 @@ def create_app(settings=None):
         if not refs:
             raise HTTPException(409, 'result_pending')
         return {'schema_version': '1', 'task_id': str(task_id), 'result_refs': refs}
-
-    @app.post('/v1/tasks/{task_id}/cancel')
-    def cancel(task_id: UUID, actor: Actor = Depends(authenticate)):
-        actor.require('tasks:cancel')
-        with ledger.connect() as conn:
-            row = ledger.get_task(actor.tenant, actor.principal, task_id, connection=conn)
-            if row['state'] in {'QUEUED', 'AWAITING_APPROVAL', 'RETRY_PENDING'}:
-                row = ledger.transition(conn, task_id, row['state'], 'CANCELLED', str(actor.principal),
-                                        version=row['version'])
-            elif row['state'] not in {'CANCELLED', 'SUCCEEDED', 'FAILED', 'REJECTED'}:
-                raise HTTPException(409, 'unsupported_capability')
-        return task_status(row)
 
     @app.get('/v1/tasks')
     def list_tasks(status: str | None = None, cursor: str | None = None, limit: int = 20,

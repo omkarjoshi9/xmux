@@ -95,7 +95,7 @@ class Dispatcher:
                 self.ledger.finish(conn, job)
                 return None
             if retry:
-                proof = conn.execute('SELECT absence_evidence,evidence FROM dispatch_attempts WHERE task_id=%s '
+                proof = conn.execute('SELECT absence_evidence,evidence,capabilities FROM dispatch_attempts WHERE task_id=%s '
                                      'ORDER BY created_at DESC LIMIT 1', (task['id'],)).fetchone()
                 evidence = proof['absence_evidence'] if proof else None
                 now = datetime.now(UTC)
@@ -103,6 +103,8 @@ class Dispatcher:
                         or (now - datetime.fromisoformat(evidence['checked_at'])).total_seconds() > 60):
                     raise RemoteUnavailable('stale_absence_evidence')
             request = proof['evidence']['task'] if retry else task['request']
+            if retry:
+                capabilities = proof['capabilities']
             if state == 'QUEUED' or (state == 'RETRY_PENDING' and retry):
                 if task['intent'] not in {'research', 'summarize'}:
                     self.ledger.transition(conn, task['id'], state, 'AWAITING_APPROVAL', 'policy')
@@ -135,9 +137,10 @@ class Dispatcher:
                     .isoformat().replace('+00:00', 'Z')}
                 payload = {'schema_version': '1', 'attempt': attempt, 'task': request, 'delegation': delegation}
                 validate('DispatchRequest', payload)
-                conn.execute('INSERT INTO dispatch_attempts(id,task_id,correlation_id,state,evidence) '
-                             'VALUES(%s,%s,%s,%s,%s)',
-                             (uuid4(), task['id'], correlation, 'PREPARED', Jsonb(payload)))
+                conn.execute('INSERT INTO dispatch_attempts(id,task_id,correlation_id,state,evidence,capabilities) '
+                             'VALUES(%s,%s,%s,%s,%s,%s)',
+                             (uuid4(), task['id'], correlation, 'PREPARED', Jsonb(payload),
+                              Jsonb(capabilities) if capabilities else None))
                 return 'submit', payload
             attempt = conn.execute('SELECT * FROM dispatch_attempts WHERE task_id=%s '
                                    'ORDER BY created_at DESC LIMIT 1', (task['id'],)).fetchone()
@@ -233,6 +236,8 @@ class Dispatcher:
                          'VALUES(%s,%s,%s,%s,%s,%s) ON CONFLICT(task_id) DO NOTHING',
                          (uuid4(), task['id'], ref['agent_id'], ref['remote_task_id'], ref['correlation_id'],
                           Jsonb(ref)))
+            conn.execute('UPDATE remote_jobs SET capabilities=(SELECT capabilities FROM dispatch_attempts '
+                         'WHERE correlation_id=%s) WHERE task_id=%s', (ref['correlation_id'], task['id']))
             conn.execute('UPDATE tasks SET assigned_agent=%s WHERE id=%s', (ref['agent_id'], task['id']))
             conn.execute("UPDATE outbox SET state='PENDING',lease_until=NULL,available_at=now() "
                          'WHERE id=%s', (job['id'],))

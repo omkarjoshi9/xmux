@@ -4,7 +4,11 @@ import os
 import signal
 import threading
 
+import httpx
+
+from .cancellation import Cancellation, HttpCancellation
 from .db.ledger import Ledger
+from .delivery import Delivery, HttpGateway
 from .dispatch import Dispatcher, HttpMultiplexer
 from .health import dependencies
 from .logging import configure_logging
@@ -23,8 +27,17 @@ def main() -> None:
         reconcile_path=os.getenv('MULTIPLEXER_RECONCILE_PATH'),
         result_path=os.getenv('MULTIPLEXER_RESULT_PATH'),
         selection_path=os.getenv('MULTIPLEXER_SELECTION_PATH')))
+    ledger = dispatcher.ledger
+    gateway = HttpGateway(httpx.Client(base_url=settings.gateway_url,
+        headers={'Authorization': 'Bearer ' + settings.gateway_token}, timeout=10),
+        submit_path=os.getenv('GATEWAY_DELIVERY_PATH'), status_path=os.getenv('GATEWAY_DELIVERY_STATUS_PATH'))
+    cancellation = HttpCancellation(httpx.Client(base_url=settings.multiplexer_url,
+        headers={'Authorization': 'Bearer ' + settings.multiplexer_token}, timeout=10),
+        cancel_path=os.getenv('MULTIPLEXER_CANCEL_PATH'), status_path=os.getenv('MULTIPLEXER_CANCEL_STATUS_PATH'))
+    workers = [dispatcher, Delivery(ledger, gateway), Cancellation(ledger, cancellation)]
     while not stopped.is_set():
-        if not dispatcher.tick():
+        progressed = [worker.tick() for worker in workers]
+        if not any(progressed):
             stopped.wait(1)
 
 

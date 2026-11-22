@@ -13,6 +13,7 @@ from jsonschema import ValidationError
 from xmux_control.approvals import Approvals, requires_approval
 from xmux_control.auth import Actor, authenticate
 from xmux_control.cancellation import router as cancellation_router
+from xmux_control.catalog_router import install as install_catalog
 from xmux_control.contracts import validate
 from xmux_control.db.ledger import Conflict, Ledger, NotFound
 from xmux_control.delivery import router as delivery_router
@@ -40,6 +41,8 @@ def create_app(settings=None):
     install_phase6(app, ledger)
     app.include_router(cancellation_router(ledger, authenticate))
     app.include_router(delivery_router(ledger, authenticate))
+    install_catalog(app, ledger, registry_url=settings.registry_url,
+                    registry_token=settings.multiplexer_token)
     mount_health(app, settings)
 
     def error(status, code):

@@ -24,6 +24,7 @@ class Settings:
     jwt_issuer: str = ""
     jwt_audience: str = "xmux-orchestrator"
     jwt_public_key_file: str = ""
+    registry_url: str = ""
     max_request_bytes: int = 262144
 
     @classmethod
@@ -47,4 +48,5 @@ class Settings:
             jwt_issuer=os.getenv("JWT_ISSUER", ""),
             jwt_audience=os.getenv("JWT_AUDIENCE", "xmux-orchestrator"),
             jwt_public_key_file=os.getenv("JWT_PUBLIC_KEY_FILE", ""),
+            registry_url=os.getenv("MULTIPLEXER_REGISTRY_URL", ""),
         )

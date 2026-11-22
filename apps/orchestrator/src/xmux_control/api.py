@@ -10,14 +10,16 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from jsonschema import ValidationError
 
+from xmux_control.approvals import Approvals, requires_approval
 from xmux_control.auth import Actor, authenticate
 from xmux_control.cancellation import router as cancellation_router
-from xmux_control.delivery import router as delivery_router
 from xmux_control.contracts import validate
 from xmux_control.db.ledger import Conflict, Ledger, NotFound
+from xmux_control.delivery import router as delivery_router
 from xmux_control.health import mount_health
 from xmux_control.logging import configure_logging
 from xmux_control.observations import record_callback
+from xmux_control.phase6_router import install as install_phase6
 from xmux_control.settings import Settings
 
 
@@ -35,6 +37,7 @@ def create_app(settings=None):
     app.state.settings = settings
     ledger = Ledger(settings.database_url)
     app.state.ledger = ledger
+    install_phase6(app, ledger)
     app.include_router(cancellation_router(ledger, authenticate))
     app.include_router(delivery_router(ledger, authenticate))
     mount_health(app, settings)
@@ -86,7 +89,11 @@ def create_app(settings=None):
         if actor.role != 'user':
             # Gateway creation without a verified source event has no user ownership proof.
             raise HTTPException(403, 'forbidden')
-        row, created = ledger.create_task(actor.tenant, actor.principal, data)
+        with ledger.connect() as conn:
+            row, created = ledger.create_task(actor.tenant, actor.principal, data, connection=conn)
+            if created and requires_approval(data):
+                Approvals(ledger).gate(conn, row)
+                row = ledger.get_task(actor.tenant, actor.principal, row["id"], connection=conn)
         return JSONResponse({'schema_version': '1', 'task_id': str(row['id']), 'status': row['state'],
                              'assigned_agent': row['assigned_agent']}, status_code=201 if created else 200)
 

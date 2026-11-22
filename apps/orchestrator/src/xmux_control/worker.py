@@ -6,6 +6,7 @@ import threading
 
 import httpx
 
+from .approvals import Approvals
 from .cancellation import Cancellation, HttpCancellation
 from .db.ledger import Ledger
 from .delivery import Delivery, HttpGateway
@@ -13,6 +14,7 @@ from .dispatch import Dispatcher, HttpMultiplexer
 from .health import dependencies
 from .logging import configure_logging
 from .settings import Settings
+from .workflows import Workflows
 
 
 def main() -> None:
@@ -36,7 +38,9 @@ def main() -> None:
         cancel_path=os.getenv('MULTIPLEXER_CANCEL_PATH'), status_path=os.getenv('MULTIPLEXER_CANCEL_STATUS_PATH'))
     workers = [dispatcher, Delivery(ledger, gateway), Cancellation(ledger, cancellation)]
     while not stopped.is_set():
+        Approvals(ledger).expire()
         progressed = [worker.tick() for worker in workers]
+        Workflows(ledger).tick()
         if not any(progressed):
             stopped.wait(1)
 

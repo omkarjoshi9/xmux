@@ -7,7 +7,7 @@ COMPOSE := docker compose --env-file .env -f infrastructure/compose/compose.yml
 contracts:
 	npm --prefix packages/contracts run check
 test:
-	$(PYTHON) -m pytest tests/control_plane -q
+	$(PYTHON) -m pytest tests/control_plane tests/test_workflow_integration.py -q --tb=short
 lint:
 	$(PYTHON) -m ruff check --config infrastructure/control-plane/ruff.toml apps/orchestrator apps/mcp-server tests/control_plane
 build:

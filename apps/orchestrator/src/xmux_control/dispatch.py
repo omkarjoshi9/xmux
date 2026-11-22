@@ -1,12 +1,13 @@
 """Durable dispatch: uncertain acceptance is reconciliation, never a blind resend."""
 import random
 from datetime import UTC, datetime, timedelta
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import httpx
 from jsonschema import ValidationError
 from psycopg.types.json import Jsonb
 
+from xmux_control.approvals import Approvals, action_digest, requires_approval
 from xmux_control.contracts import validate
 from xmux_control.db.ledger import Conflict, fingerprint
 
@@ -94,6 +95,9 @@ class Dispatcher:
             if state in {'SUCCEEDED', 'FAILED', 'CANCELLED', 'REJECTED', 'AWAITING_APPROVAL'}:
                 self.ledger.finish(conn, job)
                 return None
+            if task['workflow_id'] and not task['workflow_started']:
+                self.ledger.finish(conn, job)
+                return None
             if retry:
                 proof = conn.execute('SELECT absence_evidence,evidence,capabilities FROM dispatch_attempts WHERE task_id=%s '
                                      'ORDER BY created_at DESC LIMIT 1', (task['id'],)).fetchone()
@@ -106,10 +110,32 @@ class Dispatcher:
             if retry:
                 capabilities = proof['capabilities']
             if state == 'QUEUED' or (state == 'RETRY_PENDING' and retry):
-                if task['intent'] not in {'research', 'summarize'}:
-                    self.ledger.transition(conn, task['id'], state, 'AWAITING_APPROVAL', 'policy')
-                    self.ledger.finish(conn, job)
-                    return None
+                approval_refs = []
+                prior_approval = conn.execute('SELECT id FROM approvals WHERE task_id=%s LIMIT 1',
+                                              (task['id'],)).fetchone()
+                if requires_approval(task['request']) or prior_approval:
+                    approved = conn.execute("SELECT id FROM approvals WHERE task_id=%s AND action_digest=%s "
+                                            "AND state='APPROVED'", (task['id'], action_digest(task))).fetchall()
+                    if not approved:
+                        if state == 'QUEUED':
+                            Approvals(self.ledger).gate(conn, task)
+                            return None
+                        raise Conflict('action_changed')
+                    approval_refs = [str(row['id']) for row in approved]
+                if not retry:
+                    refs = []
+                    for ref in request.get('context_refs', []):
+                        if not ref.startswith('task-result:'):
+                            refs.append(ref)
+                            continue
+                        source = conn.execute("SELECT result FROM tasks WHERE id=%s AND tenant_id=%s "
+                                              "AND principal_id=%s AND state='SUCCEEDED'",
+                                              (UUID(ref.removeprefix('task-result:')), task['tenant_id'],
+                                               task['principal_id'])).fetchone()
+                        if not source or not source['result']:
+                            raise ValueError('task_result_unavailable')
+                        refs.extend(source['result'].get('result_refs', []))
+                    request = {**request, 'context_refs': refs}
                 if capabilities is not None:
                     validate('AgentCapabilities', capabilities)
                     if (task['intent'] not in capabilities['operations']
@@ -132,7 +158,7 @@ class Dispatcher:
                     'audience': 'multiplexer', 'tenant_id': str(task['tenant_id']),
                     'principal_id': str(task['principal_id']), 'task_id': str(task['id']),
                     'task_version': task['version'], 'agent_id': request['requested_agent'],
-                    'scope': 'tasks:dispatch', 'action_fingerprint': digest, 'approval_refs': [],
+                    'scope': 'tasks:dispatch', 'action_fingerprint': digest, 'approval_refs': approval_refs,
                     'issued_at': utcnow(), 'expires_at': (datetime.now(UTC)+timedelta(minutes=5))
                     .isoformat().replace('+00:00', 'Z')}
                 payload = {'schema_version': '1', 'attempt': attempt, 'task': request, 'delegation': delegation}
@@ -154,7 +180,7 @@ class Dispatcher:
         if isinstance(self.remote, HttpMultiplexer):
             with self.ledger.connect() as conn:
                 task = self.load_locked(conn, job)
-            if task['state'] == 'QUEUED' and task['intent'] in {'research', 'summarize'}:
+            if task['state'] == 'QUEUED':
                 capabilities = self.remote.select(task)
         prepared = self.prepare(job, capabilities=capabilities)
         if not prepared:

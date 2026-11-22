@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmux.example/contracts/v1/EventEnvelope.schema.json",
+  "title": "EventEnvelope",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1"
+    },
+    "event_id": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+    },
+    "platform": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "\\S"
+    },
+    "platform_event_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "pattern": "\\S"
+    },
+    "event_type": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "\\S"
+    },
+    "occurred_at": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+    },
+    "actor_external_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "pattern": "\\S"
+    },
+    "tenant_id": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+    },
+    "text": {
+      "type": "string",
+      "maxLength": 65536
+    },
+    "urls": {
+      "type": "array",
+      "items": {
+        "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/HttpUrl"
+      },
+      "maxItems": 100
+    },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Attachment"
+      },
+      "maxItems": 100
+    },
+    "reply_target": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/ReplyTarget"
+    },
+    "auth_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "identity_mapping_ref": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+        }
+      },
+      "required": [
+        "identity_mapping_ref"
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "event_id",
+    "platform",
+    "platform_event_id",
+    "event_type",
+    "occurred_at",
+    "actor_external_id",
+    "tenant_id",
+    "text",
+    "urls",
+    "attachments",
+    "reply_target",
+    "auth_context"
+  ]
+}

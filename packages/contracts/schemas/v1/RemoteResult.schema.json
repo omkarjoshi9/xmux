@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmux.example/contracts/v1/RemoteResult.schema.json",
+  "title": "RemoteResult",
+  "description": "Terminal remote observation. A result is accepted only after owner, correlation, authorization and transition checks.",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1"
+        },
+        "remote_ref": {
+          "$ref": "https://xmux.example/contracts/v1/RemoteTaskRef.schema.json"
+        },
+        "finished_at": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+        },
+        "status": {
+          "const": "SUCCEEDED"
+        },
+        "result_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+          },
+          "minItems": 1,
+          "maxItems": 100,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "schema_version",
+        "remote_ref",
+        "finished_at",
+        "status",
+        "result_refs"
+      ]
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1"
+        },
+        "remote_ref": {
+          "$ref": "https://xmux.example/contracts/v1/RemoteTaskRef.schema.json"
+        },
+        "finished_at": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+        },
+        "status": {
+          "const": "FAILED"
+        },
+        "error": {
+          "$ref": "https://xmux.example/contracts/v1/ErrorEnvelope.schema.json"
+        }
+      },
+      "required": [
+        "schema_version",
+        "remote_ref",
+        "finished_at",
+        "status",
+        "error"
+      ]
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1"
+        },
+        "remote_ref": {
+          "$ref": "https://xmux.example/contracts/v1/RemoteTaskRef.schema.json"
+        },
+        "finished_at": {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+        },
+        "status": {
+          "const": "CANCELLED"
+        }
+      },
+      "required": [
+        "schema_version",
+        "remote_ref",
+        "finished_at",
+        "status"
+      ]
+    }
+  ]
+}

@@ -133,3 +133,73 @@ def test_stale_absence_evidence_cannot_enable_retry(owner, task_request):
         worker.process(only_job(ledger, task['id']))
     assert remote.calls == 0
     assert ledger.get_task(tenant, principal, task['id'])['state'] == 'DISPATCHING'
+
+
+def test_fresh_absence_retries_with_new_correlation(owner, task_request):
+    from datetime import UTC, datetime, timedelta
+    ledger, tenant, principal = owner
+    task, _ = ledger.create_task(tenant, principal, {**task_request, 'requested_agent': 'mock-research'})
+    remote = MockAgent()
+    worker = Dispatcher(ledger, remote)
+    _, payload = worker.prepare(only_job(ledger, task['id']))
+    attempt = payload['attempt']
+    remote.reconcile = lambda _: {
+        'schema_version': '1', 'outcome': 'ABSENT', 'checked_at': utcnow(),
+        **{key: attempt[key] for key in ('task_id', 'agent_id', 'correlation_id')},
+        'evidence': {'authoritative': True, 'evidence_ref': 'proof:test', 'never_accepted': True,
+                     'acceptance_closed': True, 'covers_dispatch_started_at': attempt['started_at'],
+                     'valid_until': (datetime.now(UTC) + timedelta(seconds=30)).isoformat().replace('+00:00', 'Z')}}
+    worker.process(only_job(ledger, task['id']))
+    assert remote.calls == 1
+    assert attempt['correlation_id'] not in remote.jobs
+    assert ledger.get_task(tenant, principal, task['id'])['state'] == 'RUNNING'
+    with ledger.connect() as conn:
+        assert conn.execute('SELECT count(*) AS n FROM dispatch_attempts WHERE task_id=%s',
+                            (task['id'],)).fetchone()['n'] == 2
+
+
+def test_operator_replay_preserves_uncertain_dispatch(owner, task_request):
+    from xmux_control.operator import replay
+    ledger, tenant, principal = owner
+    task, _ = ledger.create_task(tenant, principal, {**task_request, 'requested_agent': 'mock-research'})
+    remote = MockAgent()
+    worker = Dispatcher(ledger, remote)
+    job = only_job(ledger, task['id'])
+    worker.prepare(job)
+    with ledger.connect() as conn:
+        conn.execute("UPDATE outbox SET state='DEAD' WHERE id=%s", (job['id'],))
+    replay(ledger, job['id'], tenant=tenant, principal=principal)
+    with pytest.raises(RemoteUnavailable):
+        worker.process(only_job(ledger, task['id']))
+    assert remote.calls == 0
+
+
+def test_restart_after_absence_rechecks_and_can_retry(owner, task_request):
+    from datetime import UTC, datetime, timedelta
+
+    from psycopg.types.json import Jsonb
+    ledger, tenant, principal = owner
+    task, _ = ledger.create_task(tenant, principal, {**task_request, 'requested_agent': 'mock-research'})
+    remote = MockAgent()
+    worker = Dispatcher(ledger, remote)
+    _, payload = worker.prepare(only_job(ledger, task['id']))
+    attempt = payload['attempt']
+    observation = {
+        'schema_version': '1', 'outcome': 'ABSENT', 'checked_at': utcnow(),
+        **{key: attempt[key] for key in ('task_id', 'agent_id', 'correlation_id')},
+        'evidence': {'authoritative': True, 'evidence_ref': 'proof:test', 'never_accepted': True,
+                     'acceptance_closed': True, 'covers_dispatch_started_at': attempt['started_at'],
+                     'valid_until': (datetime.now(UTC)+timedelta(seconds=30)).isoformat().replace('+00:00', 'Z')}}
+    with ledger.connect() as conn:
+        ledger.transition(conn, task['id'], 'DISPATCHING', 'RETRY_PENDING', 'test')
+        conn.execute('UPDATE dispatch_attempts SET absence_evidence=%s WHERE task_id=%s',
+                     (Jsonb(observation), task['id']))
+    calls = []
+    def reconcile(correlation):
+        calls.append(correlation)
+        return observation
+    remote.reconcile = reconcile
+    worker.process(only_job(ledger, task['id']))
+    assert calls == [attempt['correlation_id']]
+    assert remote.calls == 1
+    assert ledger.get_task(tenant, principal, task['id'])['state'] == 'RUNNING'

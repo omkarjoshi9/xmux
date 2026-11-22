@@ -21,7 +21,8 @@ def main() -> None:
         signal.signal(sig, lambda *_: stopped.set())
     dispatcher = Dispatcher(Ledger(settings.database_url), HttpMultiplexer(settings,
         reconcile_path=os.getenv('MULTIPLEXER_RECONCILE_PATH'),
-        result_path=os.getenv('MULTIPLEXER_RESULT_PATH')))
+        result_path=os.getenv('MULTIPLEXER_RESULT_PATH'),
+        selection_path=os.getenv('MULTIPLEXER_SELECTION_PATH')))
     while not stopped.is_set():
         if not dispatcher.tick():
             stopped.wait(1)

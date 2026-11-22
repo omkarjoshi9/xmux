@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmux.example/contracts/v1/TaskStatus.schema.json",
+  "title": "TaskStatus",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1"
+    },
+    "task_id": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Uuid"
+    },
+    "status": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/TaskState"
+    },
+    "assigned_agent": {
+      "anyOf": [
+        {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "remote_task_id": {
+      "anyOf": [
+        {
+          "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_at": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+    },
+    "updated_at": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/UtcTimestamp"
+    },
+    "error_code": {
+      "anyOf": [
+        {
+          "$ref": "https://xmux.example/contracts/v1/ErrorCode.schema.json"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "result_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+      },
+      "maxItems": 100
+    }
+  },
+  "required": [
+    "schema_version",
+    "task_id",
+    "status",
+    "assigned_agent",
+    "remote_task_id",
+    "created_at",
+    "updated_at",
+    "error_code",
+    "result_refs"
+  ]
+}

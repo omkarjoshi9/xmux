@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmux.example/contracts/v1/AgentCapabilities.schema.json",
+  "title": "AgentCapabilities",
+  "description": "Capabilities of the installed authorized adapter. Every support flag is explicit; no optimistic defaults. Operations reuse the multiplexer vocabulary.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1"
+    },
+    "agent_id": {
+      "$ref": "https://xmux.example/contracts/v1/Common.schema.json#/$defs/Reference"
+    },
+    "operations": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64,
+        "pattern": "\\S"
+      },
+      "minItems": 0,
+      "maxItems": 100,
+      "uniqueItems": true
+    },
+    "supports_status": {
+      "type": "boolean"
+    },
+    "supports_cancel": {
+      "type": "boolean"
+    },
+    "supports_schedule": {
+      "type": "boolean"
+    },
+    "supports_memory_lookup": {
+      "type": "boolean"
+    },
+    "supports_callbacks": {
+      "type": "boolean"
+    },
+    "supports_correlation_lookup": {
+      "type": "boolean"
+    },
+    "dispatch_idempotency": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "supported": {
+              "const": false
+            }
+          },
+          "required": [
+            "supported"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "supported": {
+              "const": true
+            },
+            "scope": {
+              "const": "principal_agent_operation"
+            },
+            "retention_seconds": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 31536000
+            }
+          },
+          "required": [
+            "supported",
+            "scope",
+            "retention_seconds"
+          ]
+        }
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "agent_id",
+    "operations",
+    "supports_status",
+    "supports_cancel",
+    "supports_schedule",
+    "supports_memory_lookup",
+    "supports_callbacks",
+    "supports_correlation_lookup",
+    "dispatch_idempotency"
+  ]
+}

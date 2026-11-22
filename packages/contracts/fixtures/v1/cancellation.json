@@ -1,0 +1,21 @@
+{
+  "schema_version": "1",
+  "cancellation_id": "c6b57247-4ce1-438f-b41d-b6712b2a894b",
+  "remote_ref": {
+    "schema_version": "1",
+    "task_id": "70d82b26-1b1f-459b-93e1-a3c772663488",
+    "agent_id": "hermes",
+    "remote_task_id": "remote_job_1",
+    "correlation_id": "d5c1bb6a-0ca0-4687-a348-48f736b27f74",
+    "accepted_at": "2026-11-21T12:00:00Z"
+  },
+  "observed_at": "2026-11-21T12:00:00Z",
+  "outcome": "UNSUPPORTED",
+  "error": {
+    "schema_version": "1",
+    "code": "cancellation_unsupported",
+    "message": "Example contract response",
+    "correlation_id": "d5c1bb6a-0ca0-4687-a348-48f736b27f74",
+    "retry_after_seconds": null
+  }
+}

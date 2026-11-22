@@ -1,0 +1,127 @@
+{
+  "schema_version": "1",
+  "status": "draft",
+  "operations": [
+    {
+      "operation_id": "event.ingest",
+      "method": "post",
+      "path": "/v1/events",
+      "service": "orchestrator",
+      "scope": "events:ingest",
+      "policy_operation": "event.ingest",
+      "request_schema": "EventEnvelope",
+      "response_schema": "EventReceipt",
+      "success_status": 202
+    },
+    {
+      "operation_id": "task.create",
+      "method": "post",
+      "path": "/v1/tasks",
+      "service": "orchestrator",
+      "scope": "tasks:create",
+      "policy_operation": "task.create",
+      "request_schema": "TaskRequest",
+      "response_schema": "TaskReceipt",
+      "success_status": 202
+    },
+    {
+      "operation_id": "task.list",
+      "method": "get",
+      "path": "/v1/tasks",
+      "service": "orchestrator",
+      "scope": "tasks:read",
+      "policy_operation": "task.read",
+      "request_schema": null,
+      "response_schema": "TaskPage",
+      "success_status": 200
+    },
+    {
+      "operation_id": "task.read",
+      "method": "get",
+      "path": "/v1/tasks/{id}",
+      "service": "orchestrator",
+      "scope": "tasks:read",
+      "policy_operation": "task.read",
+      "request_schema": null,
+      "response_schema": "TaskStatus",
+      "success_status": 200
+    },
+    {
+      "operation_id": "task.result",
+      "method": "get",
+      "path": "/v1/tasks/{id}/result",
+      "service": "orchestrator",
+      "scope": "tasks:read",
+      "policy_operation": "task.read",
+      "request_schema": null,
+      "response_schema": "TaskResult",
+      "success_status": 200
+    },
+    {
+      "operation_id": "task.cancel",
+      "method": "post",
+      "path": "/v1/tasks/{id}/cancel",
+      "service": "orchestrator",
+      "scope": "tasks:cancel",
+      "policy_operation": "task.cancel",
+      "request_schema": null,
+      "response_schema": "TaskStatus",
+      "success_status": 202
+    },
+    {
+      "operation_id": "approval.decide",
+      "method": "post",
+      "path": "/v1/tasks/{id}/approve",
+      "service": "orchestrator",
+      "scope": "approvals:decide",
+      "policy_operation": "approval.decide",
+      "request_schema": "ApprovalRequest",
+      "response_schema": "ApprovalReceipt",
+      "success_status": 200
+    },
+    {
+      "operation_id": "agent.list",
+      "method": "get",
+      "path": "/v1/agents",
+      "service": "multiplexer",
+      "scope": "agents:read",
+      "policy_operation": "agent.list",
+      "request_schema": null,
+      "response_schema": "AgentList",
+      "success_status": 200
+    },
+    {
+      "operation_id": "task.dispatch",
+      "method": "post",
+      "path": "/v1/dispatch",
+      "service": "multiplexer",
+      "scope": "tasks:dispatch",
+      "policy_operation": "task.dispatch",
+      "request_schema": "DispatchRequest",
+      "response_schema": "DispatchOutcome",
+      "success_status": 200
+    },
+    {
+      "operation_id": "delivery.submit",
+      "method": "post",
+      "path": "/v1/deliveries",
+      "service": "gateway",
+      "scope": "deliveries:submit",
+      "policy_operation": "delivery.submit",
+      "request_schema": "DeliveryRequest",
+      "response_schema": "DeliveryReceipt",
+      "success_status": 202
+    },
+    {
+      "operation_id": "agent.health",
+      "method": "get",
+      "path": "/internal/agents/{agent_id}/health",
+      "service": "multiplexer",
+      "scope": "agents:read",
+      "policy_operation": "agent.list",
+      "request_schema": null,
+      "response_schema": "AgentHealth",
+      "success_status": 200
+    }
+  ]
+}

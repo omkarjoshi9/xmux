@@ -1,0 +1,9 @@
+.git
+.venv
+**/node_modules
+**/__pycache__
+plan
+.env
+.env.*
+**/*.log
+.pytest_cache

@@ -7,3 +7,5 @@ plan
 .env.*
 **/*.log
 .pytest_cache
+
+.runtime

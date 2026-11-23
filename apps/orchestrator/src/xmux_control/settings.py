@@ -24,8 +24,10 @@ class Settings:
     jwt_issuer: str = ""
     jwt_audience: str = "xmux-orchestrator"
     jwt_public_key_file: str = ""
+    requests_per_minute: int = 0
     registry_url: str = ""
     max_request_bytes: int = 262144
+    metrics_token: str = field(default="", repr=False)
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -48,5 +50,7 @@ class Settings:
             jwt_issuer=os.getenv("JWT_ISSUER", ""),
             jwt_audience=os.getenv("JWT_AUDIENCE", "xmux-orchestrator"),
             jwt_public_key_file=os.getenv("JWT_PUBLIC_KEY_FILE", ""),
+            metrics_token=secret("METRICS_TOKEN"),
             registry_url=os.getenv("MULTIPLEXER_REGISTRY_URL", ""),
+            requests_per_minute=int(os.getenv("REQUESTS_PER_MINUTE", "120" if os.getenv("XMUX_ENV") == "production" else "0")),
         )

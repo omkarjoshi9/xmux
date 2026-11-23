@@ -1,5 +1,7 @@
 # Staging template. Supply real DNS names only when staging is configured.
 {$XMUX_API_DOMAIN} {
+    @private path /internal/* /health/*
+    respond @private 404
     reverse_proxy orchestrator:8000
 }
 {$XMUX_MCP_DOMAIN} {

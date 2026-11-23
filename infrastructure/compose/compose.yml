@@ -6,7 +6,35 @@ x-control: &control
   environment: &environment
     DATABASE_URL: postgresql://xmux:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/xmux
     REDIS_URL: redis://redis:6379/0
-    XMUX_ENV: development
+    XMUX_ENV: ${XMUX_ENV:-development}
+    REQUESTS_PER_MINUTE: ${REQUESTS_PER_MINUTE:-120}
+    AUTH_REGISTRY_FILE: /run/xmux/auth-registry.json
+    CURSOR_SECRET: ${CURSOR_SECRET:-}
+    METRICS_TOKEN: ${METRICS_TOKEN:-}
+    MULTIPLEXER_URL: ${MULTIPLEXER_URL:-http://multiplexer:8000}
+    MULTIPLEXER_TOKEN: ${MULTIPLEXER_TOKEN:-}
+    GATEWAY_URL: ${GATEWAY_URL:-http://gateway:8000}
+    GATEWAY_TOKEN: ${GATEWAY_TOKEN:-}
+    JWT_ISSUER: ${JWT_ISSUER:-}
+    JWT_AUDIENCE: ${JWT_AUDIENCE:-xmux-orchestrator}
+    JWT_PUBLIC_KEY_FILE: /run/xmux/api-public.pem
+    MULTIPLEXER_SELECTION_PATH: ${MULTIPLEXER_SELECTION_PATH:-}
+    MULTIPLEXER_RECONCILE_PATH: ${MULTIPLEXER_RECONCILE_PATH:-}
+    MULTIPLEXER_RESULT_PATH: ${MULTIPLEXER_RESULT_PATH:-}
+    MULTIPLEXER_REGISTRY_URL: ${MULTIPLEXER_REGISTRY_URL:-}
+    MULTIPLEXER_CANCEL_PATH: ${MULTIPLEXER_CANCEL_PATH:-}
+    MULTIPLEXER_CANCEL_STATUS_PATH: ${MULTIPLEXER_CANCEL_STATUS_PATH:-}
+    GATEWAY_DELIVERY_PATH: ${GATEWAY_DELIVERY_PATH:-}
+    GATEWAY_DELIVERY_STATUS_PATH: ${GATEWAY_DELIVERY_STATUS_PATH:-}
+    MULTIPLEXER_SCHEDULE_CAPABILITIES_PATH: ${MULTIPLEXER_SCHEDULE_CAPABILITIES_PATH:-}
+    MULTIPLEXER_SCHEDULE_CREATE_PATH: ${MULTIPLEXER_SCHEDULE_CREATE_PATH:-}
+    MULTIPLEXER_SCHEDULE_LOOKUP_PATH: ${MULTIPLEXER_SCHEDULE_LOOKUP_PATH:-}
+  volumes:
+    - ../../.runtime:/run/xmux:ro
+  read_only: true
+  tmpfs: [/tmp]
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
   depends_on:
     postgres: {condition: service_healthy}
     redis: {condition: service_healthy}
@@ -56,9 +84,21 @@ services:
       retries: 3
   worker:
     <<: *control
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
     command: [python, -m, xmux_control.worker]
   mcp-server:
     <<: *control
+    profiles: [mcp]
+    environment:
+      <<: *environment
+      XMUX_MCP_ISSUER: ${XMUX_MCP_ISSUER:-}
+      XMUX_MCP_RESOURCE: ${XMUX_MCP_RESOURCE:-}
+      XMUX_MCP_API_URL: ${XMUX_MCP_API_URL:-}
+      XMUX_MCP_PUBLIC_KEY_FILE: /run/xmux/mcp-public.pem
+      XMUX_MCP_ACCOUNTS_FILE: /run/xmux/mcp-accounts.json
     command: [uvicorn, 'xmux_mcp.app:create_app', --factory, --host, 0.0.0.0, --port, '8001', --no-access-log]
     ports: ["127.0.0.1:58001:8001"]
 volumes:

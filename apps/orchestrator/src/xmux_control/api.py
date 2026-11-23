@@ -20,6 +20,7 @@ from xmux_control.delivery import router as delivery_router
 from xmux_control.health import mount_health
 from xmux_control.logging import configure_logging
 from xmux_control.observations import record_callback
+from xmux_control.operations import RequestLimits, mount_operations
 from xmux_control.phase6_router import install as install_phase6
 from xmux_control.phase8_router import install as install_phase8
 from xmux_control.routine_adapter import HttpRoutines
@@ -47,6 +48,8 @@ def create_app(settings=None):
     install_catalog(app, ledger, registry_url=settings.registry_url,
                     registry_token=settings.multiplexer_token)
     mount_health(app, settings)
+    mount_operations(app, settings.metrics_token, ledger)
+    app.add_middleware(RequestLimits, maximum=settings.max_request_bytes)
 
     def error(status, code):
         body = {'schema_version': '1', 'code': code, 'message': code.replace('_', ' '),

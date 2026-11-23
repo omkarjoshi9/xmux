@@ -48,3 +48,9 @@ The worker now claims PostgreSQL outbox entries with fenced leases, records disp
 Authenticated result callbacks use `/internal/callbacks`, require the multiplexer role and `tasks:observe`, and verify tenant plus the persisted remote receipt. Callback IDs/sequences prevent duplicate or conflicting terminal updates. Keep this route on private ingress.
 
 Pending P4 work: registry-based selection/capability checks, supported remote cancellation, safe retry execution after authoritative absence, and an operator dead-letter replay command. Current authoritative absence transitions to RETRY_PENDING but requires review; it does not automatically resubmit. Missing reconciliation stays UNKNOWN and exhausts into a dead-letter record after bounded attempts. Non-research/summarize tasks wait for approval; approval issuance/consumption follows P6.
+
+## Remote schedule adapter
+
+Configure `MULTIPLEXER_SCHEDULE_CAPABILITIES_PATH`, `MULTIPLEXER_SCHEDULE_CREATE_PATH`, and `MULTIPLEXER_SCHEDULE_LOOKUP_PATH` only against an agreed authenticated multiplexer interface. Each uses POST with server-owned tenant/principal headers. Capability response uses AgentCapabilities and must match the requested agent. Creation and lookup responses must bind tenant_id, principal_id, agent_id and correlation_id; an active schedule requires remote_schedule_id. An existing remote ID cannot change during lookup. These are adapter requirements, not a claim that the external service already exposes these paths.
+
+Routine creation first records a pending approval. Approval commits UNKNOWN before remote I/O; lost responses are resolved through correlation lookup without repeating creation. XMUX never runs the schedule locally. Unsupported capabilities and missing endpoint configuration fail explicitly.

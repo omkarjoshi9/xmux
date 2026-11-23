@@ -6,6 +6,7 @@ RUN pip install --no-cache-dir -r /tmp/requirements.lock && useradd --uid 10001 
 COPY apps/orchestrator /workspace/apps/orchestrator
 COPY apps/mcp-server /workspace/apps/mcp-server
 COPY packages/contracts /workspace/packages/contracts
+COPY packages/workflow-sdk /workspace/packages/workflow-sdk
 COPY infrastructure/migrations /workspace/infrastructure/migrations
 ENV PYTHONPATH=/workspace/apps/orchestrator/src:/workspace/apps/mcp-server/src
 USER xmux
